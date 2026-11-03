@@ -17,7 +17,7 @@ Native Windows file comparison, built around clear review and explicit saving.
 
 ## Run
 
-Windows x64 with the **.NET 10 Desktop Runtime** is required. Extract the portable ZIP, then run `DiffBeacon.exe`. This build is console-enabled so `--check` and `--help` produce script-readable output; GUI launches may also show a console window.
+Windows x64 with the **.NET 10 Desktop Runtime** is required. Extract the portable ZIP, then run `DiffBeacon.exe`. The desktop app opens without a console window. CLI commands attach to the calling console (or open one when launched outside a terminal) so `--check` and `--help` produce script-readable output.
 
 Choose a mode, select two paths, then **Compare**. For snippets, leave paths blank and paste into the Text editors. Select source text and select a destination range/caret before **Selected → Right** or **Left ← Selected**. Merges change the editor only; use **Save Left As…** or **Save Right As…** to write. **New Snippets** resets the pair after a discard warning.
 
