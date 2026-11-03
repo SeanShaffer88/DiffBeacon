@@ -15,7 +15,7 @@ public sealed class MainForm : Form
         var menu = new MenuStrip();
         var file = new ToolStripMenuItem("&File"); file.DropDownItems.Add("New Comparison", null, (_, _) => Add("Text", "", "")); file.DropDownItems.Add("Open Session…", null, (_, _) => OpenSession()); file.DropDownItems.Add("Close Tab", null, (_, _) => CloseTab()); file.DropDownItems.Add("Exit", null, (_, _) => Close()); menu.Items.Add(file);
         menu.Items.Add("About", null, (_, _) => MessageBox.Show(this, "DiffBeacon · Core Preview\nNative, local-first file comparison.\nSee docs/FEATURES.md for current limits.\nNo automatic network access or telemetry.", "About DiffBeacon"));
-        var heading = new Label { Text = "DiffBeacon    /    Compare With Clarity", Dock = DockStyle.Top, Height = 55, Padding = new(18, 12, 0, 0), ForeColor = Color.White, BackColor = Color.FromArgb(12, 57, 65), Font = new("Segoe UI Semibold", 16) };
+        var heading = new Label { Text = "DiffBeacon    /    Compare With Clarity", Dock = DockStyle.Top, Height = 55, Padding = new(18, 12, 0, 0), ForeColor = Color.FromArgb(235, 239, 244), BackColor = Color.FromArgb(29, 32, 37), Font = new("Segoe UI Semibold", 16) };
         Controls.Add(tabs); Controls.Add(heading); Controls.Add(menu); MainMenuStrip = menu;
         Add(mode, left, right);
         FormClosing += (_, e) => { foreach (TabPage tab in tabs.TabPages) { if (tab.Controls[0] is CompareView view && !view.CanClose()) { e.Cancel = true; return; } } };
@@ -39,7 +39,8 @@ sealed class CompareView : UserControl
     readonly RichTextBox leftText = Editor(), rightText = Editor();
     readonly DataGridView results = new() { Dock = DockStyle.Fill, ReadOnly = true, AllowUserToAddRows = false, AllowUserToDeleteRows = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, RowHeadersVisible = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false, BackgroundColor = Color.White };
     readonly SplitContainer editors = new() { Dock = DockStyle.Fill, SplitterWidth = 6 };
-    readonly Label status = new() { Dock = DockStyle.Bottom, Height = 46, Padding = new(12, 10, 0, 0), BackColor = Color.FromArgb(232, 243, 243), AutoEllipsis = true };
+    readonly TrackBar scrubber = new() { Dock = DockStyle.Top, Height = 38, Minimum = 0, Maximum = 0, TickStyle = TickStyle.None, Enabled = false };
+    readonly Label status = new() { Dock = DockStyle.Bottom, Height = 38, Padding = new(12, 9, 0, 0), BackColor = Color.FromArgb(29, 32, 37), ForeColor = Color.FromArgb(173, 182, 193), AutoEllipsis = true };
     readonly CheckBox ignoreCase = new() { Text = "Ignore Case", AutoSize = true }, ignoreSpace = new() { Text = "Ignore Whitespace", AutoSize = true }, ignoreBlank = new() { Text = "Ignore Blank Lines", AutoSize = true }, wrap = new() { Text = "Word Wrap", AutoSize = true };
     readonly TextBox delimiter = new() { Text = ",", Width = 28 };
     readonly Button compare = new() { Text = "Compare", AutoSize = true };
@@ -52,27 +53,30 @@ sealed class CompareView : UserControl
     List<string?[]> reportRows = new();
 
     static RichTextBox Editor() => new() { Dock = DockStyle.Fill, Font = new("Consolas", 11), AcceptsTab = true, WordWrap = false, DetectUrls = false, BorderStyle = BorderStyle.None, BackColor = Color.White, MaxLength = TextComparison.MaxCharacters / 2, HideSelection = false };
+    static void StyleButton(Button button) { button.FlatStyle = FlatStyle.Flat; button.FlatAppearance.BorderColor = Color.FromArgb(68, 76, 86); button.BackColor = Color.FromArgb(45, 50, 58); button.ForeColor = Color.FromArgb(225, 229, 235); }
     public CompareView(string initialMode, string left, string right)
     {
-        BackColor = Color.FromArgb(246, 249, 249); mode.Items.AddRange(["Text", "Folders", "Binary", "Tables"]); mode.SelectedItem = initialMode;
-        results.DefaultCellStyle.SelectionBackColor = Color.FromArgb(12, 88, 99); results.DefaultCellStyle.SelectionForeColor = Color.White;
+        BackColor = Color.FromArgb(30, 33, 38); ForeColor = Color.FromArgb(225, 229, 235); mode.Items.AddRange(["Text", "Folders", "Binary", "Tables"]); mode.SelectedItem = initialMode; StyleButton(compare);
+        results.BackgroundColor = Color.FromArgb(37, 41, 47); results.GridColor = Color.FromArgb(53, 59, 67); results.DefaultCellStyle.BackColor = Color.FromArgb(37, 41, 47); results.DefaultCellStyle.ForeColor = Color.FromArgb(225, 229, 235); results.DefaultCellStyle.SelectionBackColor = Color.FromArgb(35, 118, 128); results.DefaultCellStyle.SelectionForeColor = Color.White; results.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(45, 50, 58); results.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(225, 229, 235); results.EnableHeadersVisualStyles = false;
         leftPath.Text = left; rightPath.Text = right;
         var paths = new TableLayoutPanel { Dock = DockStyle.Top, Height = 82, ColumnCount = 3, RowCount = 2, Padding = new(10, 5, 10, 5) };
         paths.ColumnStyles.Add(new(SizeType.Absolute, 55)); paths.ColumnStyles.Add(new(SizeType.Percent, 100)); paths.ColumnStyles.Add(new(SizeType.Absolute, 90));
-        void PathRow(int row, string label, TextBox path) { paths.Controls.Add(new Label { Text = label, AutoSize = true, Padding = new(0, 5, 0, 0) }, 0, row); paths.Controls.Add(path, 1, row); var browse = new Button { Text = "Browse…", Dock = DockStyle.Fill }; browse.Click += (_, _) => Browse(path); paths.Controls.Add(browse, 2, row); }
+        paths.BackColor = BackColor; void PathRow(int row, string label, TextBox path) { path.BackColor = Color.FromArgb(37, 41, 47); path.ForeColor = Color.FromArgb(225, 229, 235); paths.Controls.Add(new Label { Text = label, AutoSize = true, Padding = new(0, 5, 0, 0), ForeColor = ForeColor, BackColor = BackColor }, 0, row); paths.Controls.Add(path, 1, row); var browse = new Button { Text = "Browse…", Dock = DockStyle.Fill }; StyleButton(browse); browse.Click += (_, _) => Browse(path); paths.Controls.Add(browse, 2, row); }
         PathRow(0, "Left", leftPath); PathRow(1, "Right", rightPath);
         var tools = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, Padding = new(10, 4, 0, 0), WrapContents = false, AutoScroll = true }; tools.Controls.Add(mode); tools.Controls.Add(compare); compare.Click += async (_, _) => await Compare();
-        Button Tool(string title, Action action) { var button = new Button { Text = title, AutoSize = true }; button.Click += (_, _) => { try { action(); } catch (Exception ex) { Error(ex); } }; tools.Controls.Add(button); return button; }
+        tools.BackColor = BackColor; Button Tool(string title, Action action) { var button = new Button { Text = title, AutoSize = true }; StyleButton(button); button.Click += (_, _) => { try { action(); } catch (Exception ex) { Error(ex); } }; tools.Controls.Add(button); return button; }
         Tool("Cancel", () => cancellation?.Cancel()); Tool("Swap", Swap); Tool("New Snippets", NewSnippets); Tool("Save Session…", SaveSession); Tool("Export HTML…", Export);
-        var options = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 37, Padding = new(10, 5, 0, 0), WrapContents = false, AutoScroll = true }; options.Controls.AddRange([ignoreCase, ignoreSpace, ignoreBlank, wrap, new Label { Text = "Table Separator", AutoSize = true }, delimiter]);
+        var options = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 37, Padding = new(10, 5, 0, 0), WrapContents = false, AutoScroll = true, BackColor = BackColor }; foreach (var check in new[] { ignoreCase, ignoreSpace, ignoreBlank, wrap }) { check.ForeColor = ForeColor; check.BackColor = BackColor; } delimiter.BackColor = Color.FromArgb(37, 41, 47); delimiter.ForeColor = ForeColor; options.Controls.AddRange([ignoreCase, ignoreSpace, ignoreBlank, wrap, new Label { Text = "Table Separator", AutoSize = true, ForeColor = ForeColor, BackColor = BackColor }, delimiter]);
         wrap.CheckedChanged += (_, _) => leftText.WordWrap = rightText.WordWrap = wrap.Checked;
-        var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, Padding = new(10, 3, 0, 0), WrapContents = false, AutoScroll = true };
-        void Action(string title, System.Action action) { var b = new Button { Text = title, AutoSize = true }; b.Click += (_, _) => { try { action(); } catch (Exception ex) { Error(ex); } }; actions.Controls.Add(b); }
+        var actions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, Padding = new(10, 3, 0, 0), WrapContents = false, AutoScroll = true, BackColor = BackColor };
+        void Action(string title, System.Action action) { var b = new Button { Text = title, AutoSize = true }; StyleButton(b); b.Click += (_, _) => { try { action(); } catch (Exception ex) { Error(ex); } }; actions.Controls.Add(b); }
         Action("Previous Difference", () => Navigate(-1)); Action("Next Difference", () => Navigate(1)); Action("Selected → Right", () => Merge(true, false)); Action("Left ← Selected", () => Merge(false, false)); Action("All → Right", () => Merge(true, true)); Action("Undo Merge", Undo); Action("Save Left As…", () => Save(false)); Action("Save Right As…", () => Save(true));
-        editors.Panel1.Controls.Add(leftText); editors.Panel2.Controls.Add(rightText);
+        editors.Orientation = Orientation.Horizontal; editors.Panel1.Controls.Add(leftText); editors.Panel2.Controls.Add(rightText);
+        leftText.BackColor = rightText.BackColor = Color.FromArgb(32, 35, 40); leftText.ForeColor = rightText.ForeColor = Color.FromArgb(220, 224, 231); editors.Panel1.BackColor = editors.Panel2.BackColor = Color.FromArgb(26, 29, 34);
+        scrubber.BackColor = Color.FromArgb(37, 41, 47); scrubber.ValueChanged += (_, _) => JumpToDifference(scrubber.Value);
         var workspace = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterWidth = 6 }; workspace.Panel1.Controls.Add(editors); workspace.Panel2.Controls.Add(results);
-        Controls.Add(workspace); Controls.Add(actions); Controls.Add(options); Controls.Add(paths); Controls.Add(tools); Controls.Add(status);
-        Resize += (_, _) => { if (editors.Width > 100) editors.SplitterDistance = editors.Width / 2; if (workspace.Height > 150) workspace.SplitterDistance = workspace.Height * 2 / 3; };
+        Controls.Add(workspace); Controls.Add(scrubber); Controls.Add(actions); Controls.Add(options); Controls.Add(paths); Controls.Add(tools); Controls.Add(status);
+        Resize += (_, _) => { if (editors.Height > 150) editors.SplitterDistance = editors.Height / 2; if (workspace.Height > 150) workspace.SplitterDistance = workspace.Height * 4 / 5; };
         leftText.TextChanged += (_, _) => { if (!suppress) { dirtyLeft = true; InvalidateComparison(); status.Text = "Left Edited · Compare Again Before Navigating Differences"; } };
         rightText.TextChanged += (_, _) => { if (!suppress) { dirtyRight = true; InvalidateComparison(); status.Text = "Right Edited · Compare Again Before Navigating Differences"; } };
         foreach (var path in new[] { leftPath, rightPath }) path.TextChanged += (_, _) => InvalidateComparison();
@@ -117,7 +121,7 @@ sealed class CompareView : UserControl
                 if (loadRight) { rightDoc = rd; suppress = true; rightText.Text = rd!.Text; suppress = false; dirtyRight = false; }
                 var lt = leftText.Text; var rt = rightText.Text; var result = await Task.Run(() => TextComparison.Compare(lt, rt, options, token), token);
                 if (disposed || cts != cancellation || token.IsCancellationRequested) return;
-                textResult = result; summary = result.Summary; reportRows = result.Rows.Select(r => new string?[] { r.Status.ToString(), r.LeftLine?.ToString(), r.Left, r.RightLine?.ToString(), r.Right }).ToList();
+                textResult = result; summary = result.Summary; var diffCount = result.Rows.Count(r => r.Status != Change.Equal); scrubber.Maximum = Math.Max(0, diffCount - 1); scrubber.Enabled = diffCount > 0; differenceIndex = -1; reportRows = result.Rows.Select(r => new string?[] { r.Status.ToString(), r.LeftLine?.ToString(), r.Left, r.RightLine?.ToString(), r.Right }).ToList();
                 Grid(["Status", "Left Line", "Left", "Right Line", "Right"], reportRows.Take(10000)); ColorText();
                 if (reportRows.Count > 10000) summary += " · Grid Shows First 10,000 Rows; Export Contains All Retained Rows";
             }
@@ -159,7 +163,7 @@ sealed class CompareView : UserControl
     {
         if (textResult == null) return;
         suppress = true;
-        try { foreach (var box in new[] { leftText, rightText }) { int start = box.SelectionStart, length = box.SelectionLength; box.SelectAll(); box.SelectionBackColor = Color.White; foreach (var row in textResult.Rows.Where(r => r.Status != Change.Equal).Take(2000)) { int? line = box == leftText ? row.LeftLine : row.RightLine; if (line.HasValue) { int at = box.GetFirstCharIndexFromLine(line.Value - 1); if (at >= 0) { box.Select(at, box.Lines.ElementAtOrDefault(line.Value - 1)?.Length ?? 0); box.SelectionBackColor = Color.FromArgb(255, 241, 204); } } } box.Select(start, length); } }
+        try { foreach (var box in new[] { leftText, rightText }) { box.SelectAll(); box.SelectionBackColor = box.BackColor; box.SelectionColor = box.ForeColor; foreach (var row in textResult.Rows.Where(r => r.Status != Change.Equal).Take(2000)) { int? line = box == leftText ? row.LeftLine : row.RightLine; if (line.HasValue) { int at = box.GetFirstCharIndexFromLine(line.Value - 1); if (at >= 0) { box.Select(at, box.Lines.ElementAtOrDefault(line.Value - 1)?.Length ?? 0); box.SelectionBackColor = Color.FromArgb(244, 194, 89); box.SelectionColor = Color.FromArgb(32, 35, 40); } } } box.Select(0, 0); } }
         finally { suppress = false; }
     }
     int differenceIndex = -1;
@@ -167,8 +171,17 @@ sealed class CompareView : UserControl
     {
         if (textResult == null) return; var differences = textResult.Rows.Where(r => r.Status != Change.Equal).ToArray(); if (differences.Length == 0) return;
         differenceIndex = (differenceIndex + delta + differences.Length) % differences.Length; var row = differences[differenceIndex];
-        void SelectLine(RichTextBox box, int? line) { if (line.HasValue) { int at = box.GetFirstCharIndexFromLine(line.Value - 1); if (at >= 0) { box.Select(at, box.Lines.ElementAtOrDefault(line.Value - 1)?.Length ?? 0); box.ScrollToCaret(); } } }
+        void SelectLine(RichTextBox box, int? line) { if (line.HasValue) { int at = box.GetFirstCharIndexFromLine(line.Value - 1); if (at >= 0) { box.Select(at, 0); box.ScrollToCaret(); } } }
         SelectLine(leftText, row.LeftLine); SelectLine(rightText, row.RightLine); status.Text = $"Difference {differenceIndex + 1} Of {differences.Length} · {row.Status}";
+        if (scrubber.Value != differenceIndex) scrubber.Value = differenceIndex;
+    }
+    void JumpToDifference(int index)
+    {
+        if (textResult == null) return;
+        var differences = textResult.Rows.Where(r => r.Status != Change.Equal).ToArray();
+        if (index < 0 || index >= differences.Length) return;
+        differenceIndex = index - 1;
+        Navigate(1);
     }
     void Merge(bool toRight, bool all)
     {

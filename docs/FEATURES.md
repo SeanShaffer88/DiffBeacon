@@ -13,7 +13,7 @@ Status describes this core preview only. Implemented means present in this build
 | Ignore Terminators / Strings / Ranges / Start-End Lines | Partial | Logical line comparison ignores terminator differences. Advanced strings/ranges/line exclusions planned. |
 | Resync / Logical Matching / Tab Values / Columns | Planned | Manual resync and column-range matching. |
 | Snippet Compare | Implemented | Blank path frames accept pasted text. |
-| Differences Map / Relational Lines / Active Line / Counts | Partial | Difference navigation, status counts and row grid. Map/relational/active-line panes planned. |
+| Differences Map / Relational Lines / Active Line / Counts | Partial | Timeline scrubber navigates line differences; status counts and row grid. Relational lines and detailed overview map planned. |
 | Unicode Paths / UTF Data | Implemented | Strict UTF-8; BOM UTF-8/16/32; encoding-preserving saves. Legacy encodings rejected. |
 | Bookmarks / Wrap / Line Compare / EBCDIC / DBCS | Partial | Wrap and line comparison; bookmarks and legacy encodings planned. |
 | Web / URL Compare | Planned | No network fetching. |

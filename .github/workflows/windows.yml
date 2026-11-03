@@ -18,7 +18,7 @@ jobs:
       - name: Native UI Regression Smoke
         shell: pwsh
         run: |
-          ./src/DiffBeacon.App/bin/Release/net10.0-windows/DiffBeacon.exe --smoke "$env:RUNNER_TEMP/DiffBeacon.png"
+          dotnet ./src/DiffBeacon.App/bin/Release/net10.0-windows/DiffBeacon.dll --smoke "$env:RUNNER_TEMP/DiffBeacon.png"
           if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
       - name: Publish Portable Build
         shell: pwsh
