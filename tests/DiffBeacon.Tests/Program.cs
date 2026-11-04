@@ -24,6 +24,58 @@ try
     Test("Stale save preserves destination", () => { string p = Write("stale", "first"); var s = FileStamp.Capture(p); File.WriteAllText(p, "external"); Throws<IOException>(() => SafeFiles.Write(p, [42], s, true)); Check(File.ReadAllText(p) == "external"); });
     Test("No implicit overwrite", () => { string p = Write("exists", "keep"); Throws<IOException>(() => SafeFiles.Write(p, [42], null, false)); Check(File.ReadAllText(p) == "keep"); });
     Test("Failed save preserves file", () => { string p = Write("locked", "keep"); var s = FileStamp.Capture(p); using var locked = File.Open(p, FileMode.Open, FileAccess.Read, FileShare.None); Throws<IOException>(() => SafeFiles.Write(p, [42], s, true)); });
+    foreach (bool saveRight in new[] { false, true })
+    foreach (bool otherDirty in new[] { false, true })
+    {
+        Test($"Pane snapshot isolation right={saveRight} otherDirty={otherDirty}", () =>
+        {
+            string prefix = $"pane-{saveRight}-{otherDirty}";
+            string leftPath = Write(prefix + "-left", "left\noriginal");
+            string rightPath = Path.Combine(root, prefix + "-right");
+            var utf16 = new UnicodeEncoding(false, true, true);
+            File.WriteAllBytes(rightPath, utf16.GetPreamble().Concat(utf16.GetBytes("right\r\noriginal")).ToArray());
+            TextDocument? left = TextDocument.Load(leftPath), right = TextDocument.Load(rightPath);
+            bool dirtyLeft = saveRight ? otherDirty : true, dirtyRight = saveRight ? true : otherDirty;
+            string leftText = saveRight && !otherDirty ? left.Text : "left\npending";
+            string rightText = !saveRight && !otherDirty ? right.Text : "right\npending";
+            var untouched = saveRight ? left : right;
+            string pending = saveRight ? leftText : rightText;
+            string destination = saveRight ? leftPath : rightPath;
+            byte[] expected = (saveRight ? right : left).Encode(saveRight ? rightText : leftText);
+            void Save(bool toRight, string path)
+            {
+                if (toRight) { TextDocument.SavePane(ref right, ref dirtyRight, rightText, path, left); rightPath = path; }
+                else { TextDocument.SavePane(ref left, ref dirtyLeft, leftText, path, right); leftPath = path; }
+            }
+            Save(saveRight, destination);
+            Check(File.ReadAllBytes(destination).SequenceEqual(expected), "Saving pane encoding/newlines changed");
+            Check(!(saveRight ? dirtyRight : dirtyLeft), "Saving pane remains dirty");
+            Check(ReferenceEquals(saveRight ? left : right, untouched), "Other pane snapshot replaced");
+            Check((saveRight ? dirtyLeft : dirtyRight) == otherDirty, "Other dirty state changed");
+            Check((saveRight ? leftText : rightText) == pending, "Other pending text changed");
+            Check((saveRight ? leftPath : rightPath) == untouched.Path, "Other path changed");
+            Save(saveRight, destination); // Paths now converge; the saving pane must win stamp selection.
+            byte[] saved = File.ReadAllBytes(destination);
+            Throws<IOException>(() => Save(!saveRight, destination));
+            Check(File.ReadAllBytes(destination).SequenceEqual(saved), "Stale pane overwrote saved content");
+            Check(ReferenceEquals(saveRight ? left : right, untouched), "Conflict changed stale snapshot");
+            Check((saveRight ? dirtyLeft : dirtyRight) == otherDirty && (saveRight ? leftText : rightText) == pending, "Conflict lost pending state");
+            if (saveRight) { rightText = "right\nsecond edit"; dirtyRight = true; }
+            else { leftText = "left\nsecond edit"; dirtyLeft = true; }
+            Save(saveRight, destination);
+            string external = "external\nchange";
+            File.WriteAllText(destination, external);
+            var beforeConflict = saveRight ? right : left;
+            if (saveRight) { rightText = "right\nunsaved"; dirtyRight = true; }
+            else { leftText = "left\nunsaved"; dirtyLeft = true; }
+            Throws<IOException>(() => Save(saveRight, destination));
+            Check(File.ReadAllText(destination) == external && ReferenceEquals(saveRight ? right : left, beforeConflict), "External conflict changed file or snapshot");
+            Check(saveRight ? dirtyRight && rightText == "right\nunsaved" : dirtyLeft && leftText == "left\nunsaved", "External conflict lost edits");
+            string recovery = Path.Combine(root, prefix + "-recovery");
+            Save(!saveRight, recovery);
+            Check(File.ReadAllBytes(recovery).SequenceEqual(untouched.Encode(pending)), "Stale pane lost its BOM/newline convention");
+        });
+    }
     Test("Binary empty/equal/unequal", () => { string a = Write("empty", ""), b = Write("one", "x"); Check(BinaryComparison.Compare(a, a).DifferentBytes == 0); var r = BinaryComparison.Compare(a, b); Check(r.DifferentBytes == 1 && r.FirstDifference == 0 && r.Samples[0].Left == null); });
     Test("Binary late mismatch and sample cap", () => { string a = Path.Combine(root, "bytes-a"), b = Path.Combine(root, "bytes-b"); File.WriteAllBytes(a, new byte[200000]); var content = new byte[200000]; Array.Fill(content, (byte)1, 70000, 130000); File.WriteAllBytes(b, content); var r = BinaryComparison.Compare(a, b); Check(r.FirstDifference == 70000 && r.DifferentBytes == 130000 && r.Samples.Count == 512); });
     Test("Binary cancellation", () => Throws<OperationCanceledException>(() => BinaryComparison.Compare(Write("can-a", "a"), Write("can-b", "a"), new CancellationToken(true))));

@@ -194,15 +194,9 @@ sealed class CompareView : UserControl
     void Save(bool right)
     {
         if (Mode != "Text") return; using var dialog = new SaveFileDialog { FileName = Path.GetFileName(right ? rightPath.Text : leftPath.Text), OverwritePrompt = true, Filter = "All Files|*.*" }; if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        var document = right ? rightDoc : leftDoc; var other = right ? leftDoc : rightDoc; string destination = Path.GetFullPath(dialog.FileName); string text = right ? rightText.Text : leftText.Text;
-        // An input's original fingerprint always wins over a new Save As snapshot.
-        var source = new[] { document, other }.FirstOrDefault(d => d != null && string.Equals(d.Path, destination, StringComparison.OrdinalIgnoreCase));
-        var expected = source?.Stamp ?? (File.Exists(destination) ? FileStamp.Capture(destination) : null);
-        byte[] bytes = document?.Encode(text) ?? new UTF8Encoding(false, true).GetBytes(text);
-        SafeFiles.Write(destination, bytes, expected, File.Exists(destination));
-        var updated = TextDocument.Load(destination);
-        if (right) { rightDoc = updated; rightPath.Text = destination; dirtyRight = false; } else { leftDoc = updated; leftPath.Text = destination; dirtyLeft = false; }
-        if (other != null && string.Equals(other.Path, destination, StringComparison.OrdinalIgnoreCase)) { if (right) leftDoc = updated; else rightDoc = updated; }
+        string destination = Path.GetFullPath(dialog.FileName);
+        if (right) { TextDocument.SavePane(ref rightDoc, ref dirtyRight, rightText.Text, destination, leftDoc); rightPath.Text = destination; }
+        else { TextDocument.SavePane(ref leftDoc, ref dirtyLeft, leftText.Text, destination, rightDoc); leftPath.Text = destination; }
         status.Text = "Saved · Existing Destination Backed Up Beside File";
     }
     void SaveSession()
