@@ -145,3 +145,15 @@ Follow-up native audit fixes (pending unrestricted rerun):
 - Horizontal source positions use GetScrollInfo SIF_POS (32 bits), with a native >65,535-pixel synchronization/preservation assertion. Tab sessions use actual tab metadata and literal `\t` in the control; smoke saves/loads a captured UI session and parses tab-separated table input. A 10,002-line fixture checks that a granularity refresh retains the 10,000-row grid warning. Both text panes have explicit accessible names.
 - Smoke-owned comparisons propagate errors, asynchronous refresh errors mark the owning smoke failed, and smoke-owned close/discard paths bypass prompts. Normal GUI unsaved-change protection remains active. Argument routing assertions cover GUI paths, explicit modes, smoke, help and check; valid GUI path launches no longer attach a console.
 - Ordinary `dotnet build src/DiffBeacon.App/DiffBeacon.App.csproj -c Release --no-restore` still exited 1 at MSB4184, before compilation, because this sandbox denies the user Microsoft SDKs directory. A direct installed Roslyn compile subsequently exited 0 with nullable/warnings-as-errors and both installed WinForms analyzer assemblies, including Program.cs and the real ApplicationConfiguration generator. Output: `src/DiffBeacon.App/obj/granular-compile.dll`. This checks compilation only; it does not pass native or ordinary Release gates.
+
+## Beta candidate evidence — 2026-11-05
+
+The current beta candidate passed these bounded checks. Earlier failures and pending reruns above remain historical records for their respective builds. These candidate results supersede those records only for the checks listed here.
+
+- `scripts/Publish.ps1` through DevTools exited 0 with 111 passing tests, four examples and five isolated packed-package consumers. Run directory `C:/Users/Sean Shaffer/Documents/DevTools/runs/20261105T072529208Z-def202c7e97a4bea9349d9f42c8a8586`.
+- The owned native executable from the extracted ZIP passed `--smoke`, exit 0. Run directory `C:/Users/Sean Shaffer/Documents/DevTools/runs/20261105T072631156Z-c11cd76d9e944c9494536ab528bfd346`.
+- The strict 53-file manifest/hash check exited 0. `Get-DllInfo.ps1` identified the apphost as x64, exit 0. Module DLLs report I386 with ILOnly (AnyCPU), and the app DLL reports Amd64. The .NET 10 Desktop Runtime configuration was verified. Documentation, license, attribution and screenshots are present in the package.
+
+The preflight app version was `0.2.0-beta.1+595a6f7a76832038e3a54a541ac4f98b5f4376b4`. It identifies a modified candidate built before commit and does not identify the final release commit. Publication remains pending. The final release will use the portable artifact from the final merged commit with passing CI. The GitHub release will record its exact commit SHA and artifact SHA256 and include a downloadable checksum at publication.
+
+Installer lifecycle, physical DPI/text scaling, live high contrast and screen-reader qualification remain unperformed for this candidate. The passing automated checks do not complete those manual gates.

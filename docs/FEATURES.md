@@ -1,6 +1,6 @@
 # Feature Matrix
 
-The product target is a complete local comparison and merge workflow replacement with zero mandatory paid software, subscriptions or metered APIs. This alpha / core preview remains incomplete. Status describes this build only. Implemented means present in this build; Partial gives a specific narrower implementation; Planned means absent; Deferred means outside current implementation pending an eligible zero-cost or local approach. No advanced feature is implied by a similar control.
+The product target is a complete local comparison and merge workflow replacement with zero mandatory paid software, subscriptions or metered APIs. This v0.2.0-beta.1 public beta remains incomplete; stable and full replacement readiness are outstanding. Status describes this build only. Implemented means present in this build; Partial gives a specific narrower implementation; Planned means absent; Deferred means outside current implementation pending an eligible zero-cost or local approach. No advanced feature is implied by a similar control.
 
 | Requested Capability | Status | Current Behavior / Remaining Work |
 |---|---|---|
@@ -8,7 +8,7 @@ The product target is a complete local comparison and merge workflow replacement
 | Two-Way Text Compare | Implemented | Aligned lines, bounded positional fallback, explicit status. |
 | Three-Way Text Compare / Conflicts | Partial | Dedicated Base/Local/Remote tab, read-only sources/preview, strict line-hunk merge, explicit conflict choices and safe Save As. Bounded alignment; no three-way editing/sessions/Git mergetool. |
 | Inline Text Editing / Merging | Partial | Editable raw panes; free-text selection replacement, strict aligned contiguous-block merge both directions, all-left-to-right, bounded undo and explicit Save As. Block merge requires selected fresh exact alignment with ignore options off; word-level merge planned. |
-| Character / Word / Line Highlight | Partial | Line, Word and Character highlight controls with raw Unicode offsets, bounded detail and explicit whole-line fallback. Native preservation/scroll acceptance for this slice remains pending. |
+| Character / Word / Line Highlight | Partial | Line, Word and Character highlight controls with raw Unicode offsets, bounded detail and explicit whole-line fallback. Recorded native smoke verifies decoration preservation and mapped scrolling. Manual gestures, DPI/high-contrast and full accessibility acceptance remain pending. WordWrap toggles can lose typing undo history. |
 | Ignore Case / Whitespace / Blank Lines | Implemented | Comparison normalization preserves raw editor text. |
 | Ignore Terminators / Strings / Ranges / Start-End Lines | Partial | Logical line comparison ignores terminator differences. Advanced strings/ranges/line exclusions planned. |
 | Resync / Logical Matching / Tab Values / Columns | Planned | Manual resync and column-range matching. |
@@ -43,7 +43,7 @@ The product target is a complete local comparison and merge workflow replacement
 | Themes / Skinning / Import-Export | Partial | Near-black charcoal workspace, burgundy accents, custom dark titlebar and dark prompts. Theme import/export and user-created skins planned. |
 | Syntax Highlight / Wordfiles | Planned | Content remains raw text. |
 | Dockable Legend / Filters / Folder Preview | Planned | No docking framework. |
-| Synchronized Scroll / Flip Frames / Ribbon-Classic Choice | Partial | Swap sides; synchronized scrolling and ribbon choice planned. |
+| Synchronized Scroll / Flip Frames / Ribbon-Classic Choice | Partial | Swap sides and optional bidirectional synchronized scrolling for fresh exact alignment are implemented and covered by recorded native smoke. Stale/positional comparisons scroll independently. Ribbon/classic choice remains planned. |
 | HTML Results | Implemented | Escaped retained rows, paths, summary and limits; no external scripts/assets. |
 | Color Printing / Headers / Footers / Output Pane | Planned | No print integration. |
 | Explorer Context Menu / Editor Integration | Partial | Path-based command-line launch; shell extension/external editor configuration planned. |
@@ -56,11 +56,11 @@ The product target is a complete local comparison and merge workflow replacement
 | Tabbed Sessions | Implemented | Independent comparison tabs, close and unsaved-change prompts. |
 | Installer | Planned | Framework-dependent portable ZIP only. |
 
-Advanced integrations require their own architecture, dependency authorization where needed, and acceptance testing. See SPEC.md for safety and verification contracts.
+Advanced integrations require their own architecture, eligible free local dependencies, and acceptance testing. See [SPEC.md](SPEC.md) for safety and verification contracts.
 
 ## Ordered Free Local Milestones
 
-Dependencies require prior user approval. Each milestone remains incomplete until its real workflow acceptance gate passes; no delivery timing is claimed.
+Scoped dependencies may be added under project policy; verify sources, versions and free local operation without mandatory paid services. Each milestone remains incomplete until its real workflow acceptance gate passes; no delivery timing is claimed.
 
 | Order | Milestone | Acceptance Gate |
 |---|---|---|
@@ -68,7 +68,7 @@ Dependencies require prior user approval. Each milestone remains incomplete unti
 | 2 | Git Base/Local/Remote/output contract, three-way sessions and CLI | Test real Git conflict invocation, cancellation/unresolved exit behavior, explicit output safety and session round trips; no automatic global Git changes. |
 | 3 | Folder trees, safe reviewed synchronization and duplicates | Test recursive scope, stale-plan refusal, root confinement, reviewed writes/backups/recovery and byte-verified duplicate groups; no automatic deletion. |
 | 4 | Paged binary browsing, smart alignment and table merge | Test bounds, offsets, cancellation, large fixtures, explicit incomplete states and table round-trip preservation. |
-| 5 | Free local document, spreadsheet and archive parsers; remaining integrations | Test supported formats, malformed/encrypted inputs, limits and actionable unsupported cases. No mandatory installed Office, paid codec/library/software or paid service. Approve dependencies before implementation. |
+| 5 | Free local document, spreadsheet and archive parsers; remaining integrations | Test supported formats, malformed/encrypted inputs, limits and actionable unsupported cases. No mandatory installed Office, paid codec/library/software or paid service. Verify dependency sources, versions and free local operation before implementation. |
 
 ## Full Replacement Readiness
 
@@ -76,4 +76,4 @@ Run real daily workflows across all required modes and integrations. Comparisons
 
 Granular slice inventory: Text now has Line/Word/Character detail and optional bidirectional synchronized scrolling for fresh exact alignment. Existing text edit/save/block merge, folders, binary, tables and three-way workflows retain their scope. Remote transports, virtualized multi-GB editing, installers, signing/updaters and roadmap integrations remain absent. This slice adds no packages or network calls.
 
-Audit corrections implemented: decoration preserves native state through TOM suspension; invalidation clears stale color/detail/maps; free-text merge prevalidates output before undo/mutation; zero-sample completed comparisons remain report-ready; session v3 retains separator/preferences; first Previous starts at the last difference. Native verification of preservation and scrolling remains an acceptance gate.
+Audit corrections implemented: decoration preserves native state through TOM suspension; invalidation clears stale color/detail/maps; free-text merge prevalidates output before undo/mutation; zero-sample completed comparisons remain report-ready; session v3 retains separator/preferences; first Previous starts at the last difference. Recorded native smoke passes preservation and scrolling checks. Manual gestures, physical DPI/text scaling, live high contrast and full accessibility acceptance remain outstanding. Toggling WordWrap between typing and Undo can lose typing undo history. See [verification evidence](VERIFICATION.md).

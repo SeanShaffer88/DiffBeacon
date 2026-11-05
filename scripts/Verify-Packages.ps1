@@ -3,7 +3,9 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot
 $feed = [IO.Path]::GetFullPath($OutputDirectory)
 $modules = @('Text','Files','Formats','Sessions','Core')
-$version = '0.2.0-alpha.1'
+[xml]$moduleProperties = Get-Content -LiteralPath (Join-Path $repo 'src/ModulePackage.props') -Raw
+$version = [string]$moduleProperties.Project.PropertyGroup.Version
+if ([string]::IsNullOrWhiteSpace($version)) { throw 'Missing or empty canonical module version in src/ModulePackage.props' }
 New-Item -ItemType Directory -Path $feed -Force | Out-Null
 foreach ($module in $modules) {
     dotnet pack (Join-Path $repo "src/DiffBeacon.$module") -c Release --no-build -o $feed
