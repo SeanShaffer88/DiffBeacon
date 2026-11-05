@@ -199,5 +199,3 @@ public static class InlineDifferences
         }
     }
 }
-
-

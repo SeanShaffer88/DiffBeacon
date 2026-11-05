@@ -13,4 +13,3 @@
     <ProjectReference Include="../DiffBeacon.Sessions/DiffBeacon.Sessions.csproj" />
   </ItemGroup>
 </Project>
-

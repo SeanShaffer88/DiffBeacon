@@ -25,4 +25,3 @@ public static class BinaryComparison
     }
     static int ReadBlock(Stream input, byte[] buffer) { int total = 0, read; while (total < buffer.Length && (read = input.Read(buffer, total, buffer.Length - total)) != 0) total += read; return total; }
 }
-

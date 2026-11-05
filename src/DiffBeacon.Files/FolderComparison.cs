@@ -67,4 +67,3 @@ public static class FolderComparison
         rows.AddRange(errors); return new(rows.AsReadOnly(), complete, filters, leftScan.Counts, rightScan.Counts, reasons.Order(StringComparer.Ordinal).ToArray());
     }
 }
-

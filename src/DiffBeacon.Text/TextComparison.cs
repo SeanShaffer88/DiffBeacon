@@ -61,4 +61,3 @@ public static class TextComparison
         return new(rows, fallback);
     }
 }
-

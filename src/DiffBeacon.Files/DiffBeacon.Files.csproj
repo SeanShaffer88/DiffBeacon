@@ -9,4 +9,3 @@
     <ProjectReference Include="../DiffBeacon.Text/DiffBeacon.Text.csproj" />
   </ItemGroup>
 </Project>
-

@@ -74,4 +74,3 @@ public static class SafeFiles
             if ((File.Exists(p) || Directory.Exists(p)) && (File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0) throw new IOException("Reparse-point paths are not permitted for writes: " + p);
     }
 }
-

@@ -74,4 +74,3 @@ In Text mode, **Highlight** selects Line (default), Word, or Character detail. *
 # Reusable libraries
 
 The alpha `net10.0` modules, dependency graph, examples, local package verification and compatibility notes are documented in [MODULES.md](docs/MODULES.md).
-
