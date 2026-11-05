@@ -1,5 +1,21 @@
 # Local Verification
 
+## Overview spacing and native integration — 2026-11-05
+
+The latest native output was built in the separate `DiffBeacon-VaporGrid-Integration` worktree so the original open application could remain running. The overview remains visible for empty and populated comparisons. Its caption height is measured from the active font; track, marker, selection, focus and padding metrics scale with control DPI. Font/DPI changes recalculate height outside painting. The track retains a single quiet rail above the caption, with a gap below selection outlines and bottom text padding.
+
+- Full integration `scripts/Build.ps1`: exit 0, **111 passed / 0 failed**, four upstream pane-snapshot cases and five packed consumers. Logs: `C:/Users/Sean Shaffer/Documents/DevTools/runs/20261105T070136984Z-7f6f72d25f4847f0a58aca56c9ba056f`.
+- Full native smoke: exit 0, empty stderr. Logs: `C:/Users/Sean Shaffer/Documents/DevTools/runs/20261105T070232213Z-0288dc567c3c4b2cae5f0c985420c55e`.
+- App DLL SHA256 `BFA4BF846C5BD0A8D192674045BEDB913893F723852A2A9734314A5DA2CB531F`; Files DLL SHA256 `C4D300EFEAF57B8C0BD3B44802DA82C087E0573D757C3C58AC3D343BCF434D19`.
+
+Native overview assertions cover empty, populated, 280px narrow, Segoe UI 14pt and 18pt narrow rendering, measured caption height/bottom padding, Home/End and mouse drag/capture semantics. Actual bitmaps were inspected at `C:/Users/Sean Shaffer/Documents/Codex/2026-11-03/files-pasted-by-the-user-here/work/DiffBeacon-VaporGrid-Integration/artifacts/VaporGrid-Overview.overview-empty.png`, `.overview-populated.png`, `.overview-narrow.png`, `.overview-font14.png` and `.overview-font18-narrow.png`. Full-window wide/narrow/startup/stacked captures share the `VaporGrid-Overview` prefix. These are native rendering/font-size checks, not physical mixed-DPI or renewed Computer Use claims.
+
+Upstream safe-save commit `f2c74c08d6b96cd17ed5a44f602e7175b6f2b486` was integrated without restoring duplicate Core implementations. Its `TextDocument.SavePane` body is carried verbatim into canonical `DiffBeacon.Files/TextDocument.cs`; `DiffBeacon.Core/Comparisons.cs` remains the unchanged type-forwarding facade (SHA256 `1D3989BEC603F7BBB2B4E148B28AF99AE215F215CAFB83216E61B18AF9F37311`). MainForm updates only the saving pane. All four saving-side/other-dirty combinations preserve the other pane's identity, stamp, text, dirty state, path and encoding, and reject later stale overwrite. The public API snapshot adds only SavePane.
+
+An additional isolated Files consumer called SavePane from the packed artifact, checking saved text, dirty reset and backup creation. Build/run exited 0: `C:/Users/Sean Shaffer/Documents/DevTools/runs/20261105T070429472Z-66878b281c4547c1b4d1c1d5febbe67c` and `C:/Users/Sean Shaffer/Documents/DevTools/runs/20261105T070430770Z-227ab047011849cfadd6df458645bd3b`. The temporary consumer source remains under `C:/Users/Sean Shaffer/AppData/Local/Temp/DiffBeacon-PackageConsumers-0e47b39a1c104463b473f39bf416d42c/Files/Program.cs`.
+
+No existing user app was stopped or driven, no external dependencies were added, and the Tauri pilot is excluded from the integration branch. Independent integration review and GitHub CI are coordinator gates.
+
 ## Grouped commands and editor layout — 2026-11-05
 
 Current layout verification supersedes the older layout screenshots below. The approved native implementation defaults to side-by-side editors, offers a stacked toggle, moves the active comparison's grouped Home/Merge/View deck above session tabs, adds pane path headers and two independent startup targets, and retains all existing comparison modes.

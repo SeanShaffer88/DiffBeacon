@@ -29,6 +29,16 @@ public sealed record TextDocument(string Path, string Text, Encoding Encoding, b
         if (text.Length > TextComparison.MaxCharacters) throw new InvalidDataException("Decoded text exceeds the editor budget. Use Binary mode.");
         return new(path, text, encoding, bytes[..skip], new(bytes.LongLength, before, Convert.ToHexString(SHA256.HashData(bytes))));
     }
+    public static void SavePane(ref TextDocument? document, ref bool dirty, string text, string destination, TextDocument? other)
+    {
+        // The saving pane's original fingerprint wins when both panes reference the destination.
+        var source = new[] { document, other }.FirstOrDefault(d => d != null && string.Equals(d.Path, destination, StringComparison.OrdinalIgnoreCase));
+        var expected = source?.Stamp ?? (File.Exists(destination) ? FileStamp.Capture(destination) : null);
+        byte[] bytes = document?.Encode(text) ?? new UTF8Encoding(false, true).GetBytes(text);
+        SafeFiles.Write(destination, bytes, expected, File.Exists(destination));
+        document = Load(destination);
+        dirty = false;
+    }
     public byte[] Encode(string text)
     {
         // RichTextBox normalizes line endings. Preserve the loaded file's newline convention;

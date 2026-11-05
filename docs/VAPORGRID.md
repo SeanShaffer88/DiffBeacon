@@ -24,6 +24,8 @@ The second generated concept guided hierarchy rather than adding depicted featur
 
 Text opens side by side, with pane identity, path and Browse above each editor. Stacked Editors preserves the actual RichEdit controls, text, selection, dirty flags, native typing history and comparison navigation. Split proportions survive resizing, with minimum viewport clamps. The horizontal difference overview and Previous/Next remain near the workspace. Show Results remains reachable when the grid is collapsed. The two startup targets accept independent file selection/drop, and Paste Snippets focuses the real editor. Non-Text modes retain a shared two-path header and their existing mode-specific options.
 
+The overview retains its horizontal track above the caption in both empty and populated states. Font-measured caption height, scaled track/selection/focus geometry, a clear track-to-text gap and bottom padding prevent clipping. Narrow captions use ellipsis within the available width. Native bitmap checks include Segoe UI 14pt and 18pt; physical mixed-DPI acceptance remains separate.
+
 The mockups are design artifacts, not runtime evidence. Current native captures are under `artifacts/VaporGrid-Layout.*.png`, including all three command pages, side-by-side, stacked, empty and narrow layouts. No line-number gutter or new merge capability is implied by the concept.
 
 See [attribution](VaporGrid-ATTRIBUTION.md).
