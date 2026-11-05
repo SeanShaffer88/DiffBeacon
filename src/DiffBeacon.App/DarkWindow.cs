@@ -42,7 +42,7 @@ public class DarkWindow : Form
     protected void ApplyChrome()
     {
         DarkTheme.Apply(this); captionBar.BackColor = captionText.BackColor = captionIcon.BackColor = DarkTheme.Caption;
-        foreach (var button in new[] { minimize, maximize, close }) { button.BackColor = DarkTheme.Caption; button.FlatAppearance.BorderSize = 0; button.FlatAppearance.MouseOverBackColor = DarkTheme.ChromeSelection; }
+        foreach (var button in new[] { minimize, maximize, close }) { DarkTheme.CaptionButton(button); button.BackColor = DarkTheme.Caption; button.FlatAppearance.BorderSize = 0; button.FlatAppearance.MouseOverBackColor = DarkTheme.ChromeSelection; }
         close.FlatAppearance.MouseOverBackColor = DarkTheme.AccentHover;
     }
     internal void CapturePreview(string filename, Control? overlay = null)

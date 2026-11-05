@@ -9,6 +9,7 @@ public sealed class MainForm : DarkWindow
     internal bool IsSmoke => smoke != null;
     internal void FailSmoke(Exception ex) { Console.Error.WriteLine(ex); SmokeFailed = true; }
     readonly TabControl tabs = new DarkTabs() { Dock = DockStyle.Fill };
+    readonly Panel commandHost = new() { Dock = DockStyle.Top, Height = 136 };
     readonly string? smoke;
     public MainForm(string mode, string left, string right, string? smokePath)
     {
@@ -17,13 +18,30 @@ public sealed class MainForm : DarkWindow
         var menu = new MenuStrip();
         var file = new ToolStripMenuItem("&File"); file.DropDownItems.Add("New Comparison", null, (_, _) => Add("Text", "", "")); file.DropDownItems.Add("New Three-Way Merge", null, (_, _) => AddThreeWay()); file.DropDownItems.Add("Open Session…", null, (_, _) => OpenSession()); file.DropDownItems.Add("Close Tab", null, (_, _) => CloseTab()); file.DropDownItems.Add("Exit", null, (_, _) => Close()); menu.Items.Add(file);
         menu.Items.Add("About", null, (_, _) => DarkPrompt.Show(this, "DiffBeacon · Core Preview\nNative, local-first file comparison.\nSee docs/FEATURES.md for current limits.\nNo automatic network access or telemetry.", "About DiffBeacon"));
-        WindowContent.Controls.Add(tabs); WindowContent.Controls.Add(menu); MainMenuStrip = menu;
-        Add(mode, left, right);
+        WindowContent.Controls.Add(tabs); WindowContent.Controls.Add(commandHost); WindowContent.Controls.Add(menu);
+        tabs.SelectedIndexChanged += (_, _) => HostCommands(); MainMenuStrip = menu;
+        Add(mode, left, right); HostCommands();
         FormClosing += (_, e) => { if (IsSmoke) return; foreach (TabPage tab in tabs.TabPages) { if (!CanCloseTab(tab)) { e.Cancel = true; return; } } };
-        Shown += async (_, _) => { if (smoke != null) { try { await SmokeChrome(); DarkPrompt.Smoke(this, Path.ChangeExtension(smoke, ".prompt.png")); var view = (CompareView)tabs.SelectedTab!.Controls[0]; await view.RunSmoke(smoke); var threeWay = AddThreeWay(); await threeWay.RunSmoke(Path.ChangeExtension(smoke, ".three-way.png")); CloseTab(); } catch (Exception ex) { Console.Error.WriteLine(ex); SmokeFailed = true; } Close(); } };
+        Shown += async (_, _) => { if (smoke != null) { try { CapturePreview(Path.ChangeExtension(smoke, ".startup.png")); ((CompareView)tabs.SelectedTab!.Controls[0]).CommandBar.CheckInitialLayout(); await SmokeChrome(); DarkPrompt.Smoke(this, Path.ChangeExtension(smoke, ".prompt.png")); SmokeSessionOwnership(); var view = (CompareView)tabs.SelectedTab!.Controls[0]; await view.RunSmoke(smoke); var threeWay = AddThreeWay(); await threeWay.RunSmoke(Path.ChangeExtension(smoke, ".three-way.png")); CloseTab(); } catch (Exception ex) { Console.Error.WriteLine(ex); SmokeFailed = true; } Close(); } };
+    }
+    void HostCommands()
+    {
+        commandHost.Controls.Clear();
+        if (tabs.SelectedTab?.Controls[0] is CompareView view)
+        {
+            commandHost.Controls.Add(view.CommandBar);
+            view.CommandBar.FitPages(); commandHost.Height = view.CommandBar.Height;
+            commandHost.Visible = true;
+        }
+        else commandHost.Visible = false;
+    }
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) commandHost.Controls.Clear();
+        base.Dispose(disposing);
     }
     void Add(string mode, string left, string right)
-    { var tab = new TabPage($"{mode} {tabs.TabCount + 1}"); var view = new CompareView(mode, left, right) { Dock = DockStyle.Fill }; tab.Controls.Add(view); DarkTheme.Apply(tab); tabs.TabPages.Add(tab); tabs.SelectedTab = tab; }
+    { var tab = new TabPage($"{mode} {tabs.TabCount + 1}"); var view = new CompareView(mode, left, right) { Dock = DockStyle.Fill }; view.CommandBar.SizeChanged += (_, _) => { if (view.CommandBar.Parent == commandHost) commandHost.Height = view.CommandBar.Height; }; tab.Controls.Add(view); DarkTheme.Apply(tab); tabs.TabPages.Add(tab); tabs.SelectedTab = tab; }
     ThreeWayMergeView AddThreeWay() { var tab = new TabPage("Three-Way Merge"); var view = new ThreeWayMergeView(); tab.Controls.Add(view); DarkTheme.Apply(tab); tabs.TabPages.Add(tab); tabs.SelectedTab = tab; return view; }
     bool CanCloseTab(TabPage tab) => IsSmoke || tab.Controls[0] switch { CompareView twoWay => twoWay.CanClose(), ThreeWayMergeView threeWay => threeWay.CanClose(), _ => true };
     void CloseTab() { if (tabs.SelectedTab is { } tab && CanCloseTab(tab)) { tabs.TabPages.Remove(tab); tab.Dispose(); if (tabs.TabCount == 0) Add("Text", "", ""); } }
@@ -32,6 +50,25 @@ public sealed class MainForm : DarkWindow
         using var dialog = new OpenFileDialog { Filter = "DiffBeacon Session|*.json" }; if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try { var s = Session.Load(dialog.FileName); Add(s.Mode, s.Left, s.Right); ((CompareView)tabs.SelectedTab!.Controls[0]).ApplySession(s); }
         catch (Exception ex) { DarkPrompt.Show(this, ex.Message, "Session Could Not Be Opened"); }
+    }
+    void SmokeSessionOwnership()
+    {
+        var originalTab = tabs.SelectedTab!; var original = (CompareView)originalTab.Controls[0];
+        Add("Text", "", ""); var secondTab = tabs.SelectedTab!; var second = (CompareView)secondTab.Controls[0];
+        void CheckHost(CompareView expected)
+        {
+            if (!commandHost.Visible || commandHost.Controls.Count != 1 || commandHost.Controls[0] != expected.CommandBar || expected.CommandBar.IsDisposed) throw new Exception("Session selected another view's command deck.");
+            expected.CheckHostedCommand();
+        }
+        for (int i = 0; i < 3; i++) { tabs.SelectedTab = originalTab; CheckHost(original); tabs.SelectedTab = secondTab; CheckHost(second); }
+        Add("Text", "", ""); var inactiveTab = tabs.SelectedTab!; var inactive = (CompareView)inactiveTab.Controls[0];
+        tabs.SelectedTab = secondTab; tabs.TabPages.Remove(inactiveTab); inactiveTab.Dispose();
+        if (!inactive.IsDisposed || !inactive.CommandBar.IsDisposed || second.CommandBar.IsDisposed) throw new Exception("Inactive session did not release its own deck exclusively.");
+        CheckHost(second); CloseTab(); CheckHost(original);
+        if (!second.IsDisposed || !second.CommandBar.IsDisposed) throw new Exception("Closing active session leaked its deck.");
+        AddThreeWay(); if (commandHost.Visible || commandHost.Controls.Count != 0) throw new Exception("Two-way commands appeared in a three-way session.");
+        CloseTab(); CheckHost(original);
+        Console.WriteLine("Session command routing, active/inactive disposal and three-way isolation: passed.");
     }
 }
 
@@ -42,6 +79,14 @@ sealed class CompareView : UserControl
     readonly ComparisonEditor leftText = Editor(), rightText = Editor();
     readonly DataGridView results = new DarkGrid() { Dock = DockStyle.Fill, ReadOnly = true, AllowUserToAddRows = false, AllowUserToDeleteRows = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, RowHeadersVisible = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, MultiSelect = false, BackgroundColor = DarkTheme.Surface };
     readonly SplitContainer editors = new() { Dock = DockStyle.Fill, SplitterWidth = 6 };
+    internal ComparisonCommandBar CommandBar { get; } = new();
+    readonly SplitContainer workspace = new() { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterWidth = 6 };
+    readonly Panel sharedPaths = new() { Dock = DockStyle.Top, Height = 82 };
+    readonly CheckBox stacked = new() { Text = "Stacked Editors", AutoSize = true };
+    readonly CheckBox showResults = new() { Text = "Show Results", AutoSize = true, Checked = true };
+    readonly Panel leftHeader, rightHeader;
+    double editorProportion = .5, resultProportion = .8;
+    bool arranging;
     readonly DifferenceOverview scrubber = new();
     readonly Panel emptyState = new() { Dock = DockStyle.Fill, BackColor = DarkTheme.Window };
     readonly Label status = new() { Dock = DockStyle.Bottom, Height = 38, Padding = new(12, 9, 0, 0), BackColor = DarkTheme.Caption, ForeColor = DarkTheme.Muted, AutoEllipsis = true };
@@ -52,6 +97,7 @@ sealed class CompareView : UserControl
     readonly Label folderScope = new() { Dock = DockStyle.Top, Height = 62, Padding = new(12, 5, 12, 4), Visible = false, AccessibleName = "Folder Comparison Scope" };
     readonly ToolTip help = new();
     readonly Button compare = new() { Text = "Compare", AutoSize = true };
+    readonly Button cancel;
     readonly Button blockToRight = new() { Text = "Block → Right", AutoSize = true, Enabled = false, AccessibleName = "Merge Aligned Block Into Right Editor" }, blockToLeft = new() { Text = "Left ← Block", AutoSize = true, Enabled = false, AccessibleName = "Merge Aligned Block Into Left Editor" };
     readonly Stack<(string Left, string Right)> undo = new();
     readonly ComboBox granularity = new DarkComboBox() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 105, AccessibleName = "Highlight Granularity" };
@@ -82,13 +128,23 @@ sealed class CompareView : UserControl
         BackColor = DarkTheme.Window; ForeColor = DarkTheme.Text; mode.Items.AddRange(["Text", "Folders", "Binary", "Tables"]); mode.SelectedItem = initialMode; StyleButton(compare);
         results.BackgroundColor = DarkTheme.Surface; results.GridColor = DarkTheme.DecorativeBorder; results.DefaultCellStyle.BackColor = DarkTheme.Surface; results.DefaultCellStyle.ForeColor = DarkTheme.Text; results.DefaultCellStyle.SelectionBackColor = Color.FromArgb(35, 118, 128); results.DefaultCellStyle.SelectionForeColor = Color.White; results.ColumnHeadersDefaultCellStyle.BackColor = DarkTheme.Raised; results.ColumnHeadersDefaultCellStyle.ForeColor = DarkTheme.Text; results.EnableHeadersVisualStyles = false;
         leftPath.Text = left; rightPath.Text = right;
-        var paths = new TableLayoutPanel { Dock = DockStyle.Top, Height = 82, ColumnCount = 3, RowCount = 2, Padding = new(10, 5, 10, 5) };
-        paths.ColumnStyles.Add(new(SizeType.Absolute, 55)); paths.ColumnStyles.Add(new(SizeType.Percent, 100)); paths.ColumnStyles.Add(new(SizeType.Absolute, 90));
-        paths.BackColor = BackColor; void PathRow(int row, string label, TextBox path) { path.BackColor = DarkTheme.Surface; path.ForeColor = DarkTheme.Text; paths.Controls.Add(new Label { Text = label, AutoSize = true, Padding = new(0, 5, 0, 0), ForeColor = ForeColor, BackColor = BackColor }, 0, row); paths.Controls.Add(path, 1, row); var browse = new Button { Text = "Browse…", Dock = DockStyle.Fill }; StyleButton(browse); browse.Click += (_, _) => Browse(path); paths.Controls.Add(browse, 2, row); }
-        PathRow(0, "Left", leftPath); PathRow(1, "Right", rightPath);
+        Panel PathHeader(string label, TextBox path)
+        {
+            var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 41, ColumnCount = 3, RowCount = 1, Padding = new(6, 4, 6, 4) };
+            header.ColumnStyles.Add(new(SizeType.Absolute, 52));
+            header.ColumnStyles.Add(new(SizeType.Percent, 100));
+            header.ColumnStyles.Add(new(SizeType.Absolute, 90));
+            path.MinimumSize = Size.Empty;
+            var browse = new Button { Text = "Browse…", Dock = DockStyle.Fill, Margin = new(4, 0, 0, 0) };
+            StyleButton(browse); browse.Click += (_, _) => Browse(path);
+            header.Controls.Add(new Label { Text = label, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
+            header.Controls.Add(path, 1, 0); header.Controls.Add(browse, 2, 0);
+            return header;
+        }
+        leftHeader = PathHeader("Left", leftPath); rightHeader = PathHeader("Right", rightPath);
         var tools = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new(10, 4, 0, 0), WrapContents = true, AutoScroll = false }; tools.Controls.Add(mode); tools.Controls.Add(compare); compare.Click += async (_, _) => await Compare();
         tools.BackColor = BackColor; Button Tool(string title, Action action) { var button = new Button { Text = title, AutoSize = true }; StyleButton(button); button.Click += (_, _) => { try { action(); } catch (Exception ex) { Error(ex); } }; tools.Controls.Add(button); return button; }
-        Tool("Cancel", () => cancellation?.Cancel()); Tool("Swap", Swap); Tool("New Snippets", NewSnippets); Tool("Save Session…", SaveSession); Tool("Export HTML…", Export);
+        cancel = Tool("Cancel", () => cancellation?.Cancel()); cancel.Enabled = false; Tool("Swap", Swap); Tool("New Snippets", NewSnippets); Tool("Save Session…", SaveSession); Tool("Export HTML…", Export);
         var options = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new(10, 5, 0, 0), WrapContents = true, AutoScroll = false, BackColor = BackColor }; foreach (var check in new[] { ignoreCase, ignoreSpace, ignoreBlank, wrap }) { check.ForeColor = ForeColor; check.BackColor = BackColor; } delimiter.BackColor = DarkTheme.Surface; delimiter.ForeColor = ForeColor; var separator = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty }; separator.Controls.AddRange([new Label { Text = "Table Separator", AutoSize = true, ForeColor = ForeColor, BackColor = BackColor }, delimiter]); options.Controls.AddRange([ignoreCase, ignoreSpace, ignoreBlank, wrap, separator]);
         granularity.Items.AddRange(["Line", "Word", "Character"]); granularity.SelectedIndex = 0;
         textControls.Controls.AddRange([new Label { Text = "Highlight", AutoSize = true, ForeColor = ForeColor, Padding = new(0, 4, 0, 0) }, granularity, syncScrolling]); options.Controls.Add(textControls);
@@ -98,7 +154,7 @@ sealed class CompareView : UserControl
         leftText.ViewportChanged += (_, _) => { SyncViewport(leftText, rightText, true); QueueVisibleDecoration(); };
         rightText.ViewportChanged += (_, _) => { SyncViewport(rightText, leftText, false); QueueVisibleDecoration(); };
         leftText.Resize += (_, _) => QueueVisibleDecoration(); rightText.Resize += (_, _) => QueueVisibleDecoration();
-        wrap.CheckedChanged += (_, _) => leftText.WordWrap = rightText.WordWrap = wrap.Checked;
+        wrap.CheckedChanged += (_, _) => { leftText.WordWrap = rightText.WordWrap = wrap.Checked; QueueVisibleDecoration(); };
         folderFilters.ColumnStyles.Add(new(SizeType.Absolute, 150)); folderFilters.ColumnStyles.Add(new(SizeType.Percent, 100));
         folderFilters.Controls.Add(new Label { Text = "File Filter", AutoSize = true, Padding = new(0, 4, 0, 0) }, 0, 0); folderFilters.Controls.Add(fileFilter, 1, 0);
         folderFilters.Controls.Add(new Label { Text = "Ignore Directories", AutoSize = true, Padding = new(0, 4, 0, 0) }, 0, 1); folderFilters.Controls.Add(ignoredDirectories, 1, 1);
@@ -110,33 +166,118 @@ sealed class CompareView : UserControl
         Action("Previous Difference", () => Navigate(-1)); Action("Next Difference", () => Navigate(1)); Action("Selected → Right", () => Merge(true, false)); Action("Left ← Selected", () => Merge(false, false));
         foreach (var (button, toRight) in new[] { (blockToRight, true), (blockToLeft, false) }) { StyleButton(button); actions.Controls.Add(button); button.Click += (_, _) => { try { MergeBlock(toRight); } catch (Exception ex) { Error(ex); } }; string guidance = "Merge the entire contiguous aligned difference around the selected overview/Previous/Next difference. Requires a fresh exact Text comparison with all ignore options off. Changes only the destination editor; review and Save As to write."; button.AccessibleDescription = guidance; help.SetToolTip(button, guidance); }
         Action("All → Right", () => Merge(true, true)); Action("Undo Merge", Undo); Action("Save Left As…", () => Save(false)); Action("Save Right As…", () => Save(true));
-        editors.Orientation = Orientation.Horizontal; editors.Panel1.Controls.Add(leftText); editors.Panel2.Controls.Add(rightText);
+        editors.Orientation = Orientation.Vertical; editors.Panel1.Controls.Add(leftText); editors.Panel2.Controls.Add(rightText);
+        editors.Panel1.Controls.Add(leftHeader); editors.Panel2.Controls.Add(rightHeader);
         leftText.BackColor = rightText.BackColor = DarkTheme.AmberText; leftText.ForeColor = rightText.ForeColor = DarkTheme.Text; editors.Panel1.BackColor = editors.Panel2.BackColor = DarkTheme.Window;
         scrubber.DifferenceRequested += SetSelectedDifference;
-        var workspace = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterWidth = 6 }; workspace.Panel1.Controls.Add(editors); workspace.Panel2.Controls.Add(results);
-        var welcome = new TableLayoutPanel { AutoSize = false, Width = 600, Height = 214, ColumnCount = 1, RowCount = 3, BackColor = DarkTheme.Surface, Padding = new Padding(28), Anchor = AnchorStyles.None };
-        welcome.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); welcome.RowStyles.Add(new RowStyle(SizeType.Absolute, 44)); welcome.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); welcome.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-        var welcomeTitle = new Label { Text = "Start A Comparison", AutoSize = true, Font = new Font("Segoe UI Semibold", 20), ForeColor = DarkTheme.Text, BackColor = DarkTheme.Surface, Margin = new Padding(2, 0, 2, 8) };
-        var welcomeHint = new Label { Text = "Choose two files, or paste text into the comparison panes.", AutoSize = true, ForeColor = DarkTheme.Muted, BackColor = DarkTheme.Surface, Margin = new Padding(2, 0, 2, 18) };
-        var welcomeActions = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = DarkTheme.Surface, Margin = Padding.Empty };
-        var openLeft = new Button { Text = "Open Left File…", AutoSize = true }; StyleButton(openLeft); openLeft.Click += (_, _) => Browse(leftPath);
-        var openRight = new Button { Text = "Open Right File…", AutoSize = true }; StyleButton(openRight); openRight.Click += (_, _) => Browse(rightPath);
-        var paste = new Button { Text = "Paste Snippets", AutoSize = true }; StyleButton(paste); paste.Click += (_, _) => { emptyState.Visible = false; leftText.Focus(); status.Text = "Paste Text Into Either Pane, Then Compare"; };
-        welcomeActions.Controls.AddRange([openLeft, openRight, paste]); welcome.Controls.Add(welcomeTitle, 0, 0); welcome.Controls.Add(welcomeHint, 0, 1); welcome.Controls.Add(welcomeActions, 0, 2);
-        void CenterWelcome() { welcome.Left = Math.Max(0, (emptyState.ClientSize.Width - welcome.Width) / 2); welcome.Top = Math.Max(0, (emptyState.ClientSize.Height - welcome.Height) / 2); }
-        emptyState.Controls.Add(welcome); emptyState.Resize += (_, _) => CenterWelcome(); welcome.SizeChanged += (_, _) => CenterWelcome(); CenterWelcome();
+        workspace.Panel1.Controls.Add(editors); workspace.Panel2.Controls.Add(results);
+        var welcome = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Padding = new(16) };
+        welcome.ColumnStyles.Add(new(SizeType.Percent, 50)); welcome.ColumnStyles.Add(new(SizeType.Percent, 50));
+        welcome.RowStyles.Add(new(SizeType.Percent, 100)); welcome.RowStyles.Add(new(SizeType.Absolute, 44));
+        void StartupTarget(string side, TextBox path, int column)
+        {
+            var target = new Button { Text = $"Open {side} File…\nOr Drop A File Here", Dock = DockStyle.Fill, AllowDrop = true, Margin = new(8) };
+            StyleButton(target); target.Click += (_, _) => Browse(path);
+            target.DragEnter += (_, e) => { if (e.Data?.GetDataPresent(DataFormats.FileDrop) == true) e.Effect = DragDropEffects.Copy; };
+            target.DragDrop += (_, e) => { if (e.Data?.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0) path.Text = files[0]; };
+            path.TextChanged += (_, _) => { target.Text = path.Text.Length == 0 ? $"Open {side} File…\nOr Drop A File Here" : $"{side}: {Path.GetFileName(path.Text)}\nChoose Another File…"; help.SetToolTip(target, path.Text); };
+            welcome.Controls.Add(target, column, 0);
+        }
+        StartupTarget("Left", leftPath, 0); StartupTarget("Right", rightPath, 1);
+        var paste = new Button { Text = "Paste Snippets", AutoSize = true, Anchor = AnchorStyles.None };
+        StyleButton(paste); paste.Click += (_, _) => { emptyState.Visible = false; leftText.Focus(); if (Clipboard.ContainsText()) leftText.Paste(); status.Text = "Paste Text Into Either Pane, Then Compare"; };
+        welcome.Controls.Add(paste, 0, 1); welcome.SetColumnSpan(paste, 2); emptyState.Controls.Add(welcome);
         var workspaceHost = new Panel { Dock = DockStyle.Fill }; workspaceHost.Controls.Add(workspace); emptyState.Dock = DockStyle.Fill; workspaceHost.Controls.Add(emptyState); emptyState.BringToFront();
-        Controls.Add(workspaceHost); Controls.Add(folderScope); Controls.Add(scrubber); Controls.Add(actions); Controls.Add(folderFilters); Controls.Add(options); Controls.Add(paths); Controls.Add(tools); Controls.Add(status);
-        Resize += (_, _) => { if (editors.Height > 150) editors.SplitterDistance = editors.Height / 2; if (workspace.Height > 150) workspace.SplitterDistance = workspace.Height * 4 / 5; };
+        var navigation = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, WrapContents = false, Padding = new(6, 0, 0, 0) };
+        var navigationControls = actions.Controls.Cast<Control>().Take(2).ToArray();
+        navigation.Controls.AddRange(navigationControls);
+        navigation.Controls.Add(showResults);
+        var home = CommandBar.AddPage("Home");
+        var homeCommands = tools.Controls.Cast<Control>().ToArray();
+        CommandBar.AddGroup(home, "Compare", 220, homeCommands.Take(4).ToArray());
+        CommandBar.AddGroup(home, "Session", 255, homeCommands.Skip(4).ToArray());
+        CommandBar.AddGroup(home, "Options", 335, ignoreCase, ignoreBlank, ignoreSpace, separator);
+        var merge = CommandBar.AddPage("Merge");
+        var mergeCommands = actions.Controls.Cast<Control>().ToArray();
+        CommandBar.AddGroup(merge, "Apply Changes", 380, mergeCommands.Take(5).ToArray());
+        CommandBar.AddGroup(merge, "History", 125, mergeCommands[5]);
+        CommandBar.AddGroup(merge, "Save", 180, mergeCommands.Skip(6).ToArray());
+        var viewPage = CommandBar.AddPage("View");
+        CommandBar.AddGroup(viewPage, "Layout", 220, stacked, wrap);
+        CommandBar.AddGroup(viewPage, "Differences", 200, new Label { Text = "Highlight", AutoSize = true }, granularity);
+        CommandBar.AddGroup(viewPage, "Scrolling", 185, syncScrolling);
+        tools.Dispose(); options.Dispose(); actions.Dispose();
+        Controls.Add(workspaceHost); Controls.Add(folderScope); Controls.Add(scrubber); Controls.Add(navigation); Controls.Add(folderFilters); Controls.Add(sharedPaths); Controls.Add(status);
+        stacked.CheckedChanged += (_, _) => SetEditorLayout(stacked.Checked);
+        showResults.CheckedChanged += (_, _) => { workspace.Panel2Collapsed = !showResults.Checked && Mode == "Text"; ReflowSplits(); };
+        editors.SizeChanged += (_, _) => ReflowSplits(); workspace.SizeChanged += (_, _) => ReflowSplits();
+        // SplitterMoved also fires during automatic WinForms resizing. Only drag
+        // proposals update user proportions; programmatic clamps must not drift them.
+        editors.SplitterMoving += (_, e) => { if (!arranging && EditorAxis > 0) editorProportion = (double)(editors.Orientation == Orientation.Vertical ? e.SplitX : e.SplitY) / EditorAxis; };
+        workspace.SplitterMoving += (_, e) => { if (!arranging && workspace.Height > workspace.SplitterWidth) resultProportion = (double)e.SplitY / (workspace.Height - workspace.SplitterWidth); };
         leftText.TextChanged += (_, _) => { if (!suppress) { dirtyLeft = true; InvalidateComparison(); UpdateEmptyState(); status.Text = "Left Edited · Compare Again Before Navigating Differences"; } };
         rightText.TextChanged += (_, _) => { if (!suppress) { dirtyRight = true; InvalidateComparison(); UpdateEmptyState(); status.Text = "Right Edited · Compare Again Before Navigating Differences"; } };
         foreach (var path in new[] { leftPath, rightPath }) path.TextChanged += (_, _) => InvalidateComparison();
         foreach (var option in new[] { ignoreCase, ignoreSpace, ignoreBlank }) option.CheckedChanged += (_, _) => InvalidateComparison();
         delimiter.TextChanged += (_, _) => InvalidateComparison();
-        mode.SelectedIndexChanged += (_, _) => { InvalidateComparison(); options.Visible = Mode != "Folders"; actions.Visible = scrubber.Visible = Mode == "Text"; workspace.Panel1Collapsed = Mode != "Text"; UpdateMode(); }; options.Visible = Mode != "Folders"; actions.Visible = scrubber.Visible = Mode == "Text"; workspace.Panel1Collapsed = Mode != "Text"; UpdateMode();
+        void ModeLayout()
+        {
+            bool text = Mode == "Text";
+            sharedPaths.Visible = !text;
+            if (text) { editors.Panel1.Controls.Add(leftHeader); editors.Panel2.Controls.Add(rightHeader); }
+            else { sharedPaths.Controls.Add(rightHeader); sharedPaths.Controls.Add(leftHeader); leftHeader.BringToFront(); }
+            scrubber.Visible = text;
+            workspace.Panel2Collapsed = false;
+            workspace.Panel1Collapsed = !text;
+            if (text) workspace.Panel2Collapsed = !showResults.Checked;
+            UpdateMode();
+            stacked.Enabled = wrap.Enabled = granularity.Enabled = syncScrolling.Enabled = text;
+            separator.Visible = Mode == "Tables"; CommandBar.FitPages(); ReflowSplits();
+        }
+        mode.SelectedIndexChanged += (_, _) => { InvalidateComparison(); ModeLayout(); }; ModeLayout();
         foreach (var box in new[] { leftPath, rightPath }) { box.AllowDrop = true; box.DragEnter += (_, e) => { if (e.Data?.GetDataPresent(DataFormats.FileDrop) == true) e.Effect = DragDropEffects.Copy; }; box.DragDrop += (_, e) => { if (e.Data?.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0) box.Text = files[0]; }; }
         results.CellDoubleClick += (_, e) => { if (Mode == "Folders" && folderResult != null && e.RowIndex >= 0) { string relative = Convert.ToString(results.Rows[e.RowIndex].Cells[1].Value) ?? ""; var row = folderResult.Rows.FirstOrDefault(r => r.RelativePath == relative); if (row != null && row.Status != Change.Error) { var l = Path.Combine(leftPath.Text, row.RelativePath); var r = Path.Combine(rightPath.Text, row.RelativePath); if (File.Exists(l) && File.Exists(r) && CanClose()) { leftPath.Text = l; rightPath.Text = r; leftDoc = rightDoc = null; mode.SelectedItem = "Text"; } } } };
-        DarkTheme.Apply(this); DarkTheme.Tooltip(help);
+        DarkTheme.Apply(this); DarkTheme.Apply(CommandBar); DarkTheme.Tooltip(help);
+    }
+    int EditorAxis => (editors.Orientation == Orientation.Vertical ? editors.ClientSize.Width : editors.ClientSize.Height) - editors.SplitterWidth;
+    void ReflowSplits()
+    {
+        if (arranging || disposed) return;
+        arranging = true;
+        try
+        {
+            FitWorkspace();
+        }
+        finally { arranging = false; }
+    }
+    void FitWorkspace()
+    {
+        int paneHeight = leftHeader.Height + 2 * leftText.Font.Height;
+        int editorHeight = editors.Orientation == Orientation.Horizontal ? paneHeight * 2 + editors.SplitterWidth : paneHeight;
+        SetSplit(workspace, resultProportion, editorHeight);
+        SetSplit(editors, editorProportion, editors.Orientation == Orientation.Horizontal ? paneHeight : 160, editors.Orientation == Orientation.Horizontal ? paneHeight : 160);
+    }
+    static void SetSplit(SplitContainer split, double proportion, int firstMinimum = 0, int secondMinimum = 0)
+    {
+        if (split.Panel1Collapsed || split.Panel2Collapsed) return;
+        int available = (split.Orientation == Orientation.Vertical ? split.ClientSize.Width : split.ClientSize.Height) - split.SplitterWidth;
+        if (available <= 0 || available < split.Panel1MinSize + split.Panel2MinSize) return;
+        int first = Math.Max(split.Panel1MinSize, firstMinimum), second = Math.Max(split.Panel2MinSize, secondMinimum);
+        if (first + second > available) { first = split.Panel1MinSize; second = split.Panel2MinSize; }
+        split.SplitterDistance = Math.Clamp((int)(available * proportion), first, available - second);
+    }
+    void SetEditorLayout(bool verticalStack)
+    {
+        var leftAnchor = leftText.CaptureViewport(); var rightAnchor = rightText.CaptureViewport();
+        bool previousSyncing = syncing; syncing = true; arranging = true;
+        try
+        {
+            editors.Orientation = verticalStack ? Orientation.Horizontal : Orientation.Vertical;
+            FitWorkspace();
+            leftText.RestoreViewport(leftAnchor); rightText.RestoreViewport(rightAnchor);
+        }
+        finally { syncing = previousSyncing; arranging = false; }
+        QueueVisibleDecoration();
     }
     string Mode => (string)mode.SelectedItem!;
     internal void ApplyTheme()
@@ -145,7 +286,7 @@ sealed class CompareView : UserControl
         bool previous = suppress; suppress = true;
         try
         {
-            DarkTheme.ApplyCore(this); DarkTheme.Tooltip(help);
+            DarkTheme.ApplyCore(this); DarkTheme.ApplyCore(CommandBar); DarkTheme.Tooltip(help);
             if (textResult != null) { ColorText(); if (selected >= 0) SetSelectedDifference(selected); }
             leftText.Select(Math.Min(leftStart, leftText.TextLength), Math.Min(leftLength, Math.Max(0, leftText.TextLength - leftStart)));
             rightText.Select(Math.Min(rightStart, rightText.TextLength), Math.Min(rightLength, Math.Max(0, rightText.TextLength - rightStart)));
@@ -173,7 +314,7 @@ sealed class CompareView : UserControl
     {
         if (SmokeOwned) showErrors = false;
         InvalidateComparison(); var cts = new CancellationTokenSource(); cancellation = cts; var token = cts.Token;
-        compare.Enabled = false; status.Text = "Comparing…";
+        compare.Enabled = false; cancel.Enabled = true; status.Text = "Comparing…";
         try
         {
             var selectedMode = Mode; string lp = leftPath.Text, rp = rightPath.Text; var options = Options;
@@ -219,7 +360,7 @@ sealed class CompareView : UserControl
         catch (OperationCanceledException) { if (!disposed && cts == cancellation && status.Text == "Comparing…") { InvalidateComparison(); status.Text = "Cancelled · Comparison Is Incomplete"; } }
         catch (Exception) when (token.IsCancellationRequested) { if (!disposed && cts == cancellation && status.Text == "Comparing…") { InvalidateComparison(); status.Text = "Cancelled · Comparison Is Incomplete"; } }
         catch (Exception ex) { if (!disposed && cts == cancellation && !token.IsCancellationRequested) { completedResult = false; if (showErrors) Error(ex); else { status.Text = "Error · " + ex.Message; throw; } } }
-        finally { if (!disposed && cts == cancellation) { compare.Enabled = true; cancellation = null; } cts.Dispose(); }
+        finally { if (!disposed && cts == cancellation) { compare.Enabled = true; cancel.Enabled = false; cancellation = null; } cts.Dispose(); }
     }
     static string Hex(byte? value) => value?.ToString("X2") ?? "—";
     static string Ascii(byte? value) => !value.HasValue ? "—" : value >= 32 && value <= 126 ? ((char)value).ToString() : ".";
@@ -417,6 +558,7 @@ sealed class CompareView : UserControl
             scrubber.SetSelected(index); status.Text = $"Difference {index + 1} Of {differences.Length} · {row.Status}"; UpdateBlockActions();
         }
         finally { suppress = false; }
+        QueueVisibleDecoration();
     }
     void Merge(bool toRight, bool all)
     {
@@ -470,6 +612,8 @@ sealed class CompareView : UserControl
     }
     public async Task RunSmoke(string screenshot)
     {
+        scrubber.SmokeGeometryAndPaint(screenshot);
+        await RunLayoutSmoke(screenshot);
         await RunGranularSmoke();
         SetTexts("// DiffBeacon · Compare With Clarity\npublic sealed class Beacon\n{\n    public string Name => \"Original\";\n    public int ReviewCount => 2;\n}\n", "// DiffBeacon · Compare With Clarity\npublic sealed class Beacon\n{\n    public string Name => \"Reviewed\";\n    public int ReviewCount => 3;\n    public bool Ready => true;\n}\n");
         await Compare(); if (textResult?.Differences != 3) throw new Exception("Text smoke comparison failed.");
@@ -507,8 +651,9 @@ sealed class CompareView : UserControl
         if (scrubber.MarkerCount != 3) throw new Exception("Overview marker count failed.");
         scrubber.ActivateAt(scrubber.MarkerX(2)); if (differenceIndex != 2 || scrubber.SelectedIndex != 2 || scrubber.SelectedStatus != Change.RightOnly) throw new Exception("Overview click navigation failed.");
         Navigate(1); if (differenceIndex != 0 || scrubber.SelectedIndex != 0) throw new Exception("Overview button synchronization failed.");
-        await ((DarkWindow)FindForm()!).SmokeResponsive(this, screenshot, async () => { foreach (var item in new[] { "Folders", "Binary", "Tables", "Text" }) { mode.SelectedItem = item; PerformLayout(); DarkWindow.CheckCommandBounds(this); } await Compare(); });
+        await ((DarkWindow)FindForm()!).SmokeResponsive(this, screenshot, async () => { foreach (var item in new[] { "Folders", "Binary", "Tables", "Text" }) { mode.SelectedItem = item; PerformLayout(); DarkWindow.CheckCommandBounds(this); CommandBar.VisitPages(CommandBar.CheckBounds); } await Compare(); });
         var form = FindForm()!; form.Width = 1340; form.Height = 900; await Task.Delay(250);
+        CommandBar.VisitPages(() => ((DarkWindow)form).CapturePreview(Path.ChangeExtension(screenshot, $".commands-{CommandBar.ActivePageName.ToLowerInvariant()}.png")));
         ((DarkWindow)form).CapturePreview(Path.GetFullPath(screenshot));
         dirtyLeft = dirtyRight = false;
         SetTexts("", ""); InvalidateComparison(); status.Text = "Choose Files Or Paste Text, Then Compare"; emptyState.Visible = true; emptyState.BringToFront(); await Task.Delay(150);
@@ -518,9 +663,96 @@ sealed class CompareView : UserControl
         await RunBlockMergeSmoke(Path.ChangeExtension(Path.GetFullPath(screenshot), ".block-merge.png"));
         await RunFolderSmoke(Path.ChangeExtension(Path.GetFullPath(screenshot), ".folders.png"));
     }
+    internal void CheckHostedCommand()
+    {
+        SetTexts("left host fixture", "right host fixture");
+        CommandBar.VisitPages(() =>
+        {
+            foreach (var button in CommandBar.Descendants().OfType<Button>().Where(b => b.Visible && b.Text == "Swap")) button.PerformClick();
+        });
+        if (leftText.Text != "right host fixture" || rightText.Text != "left host fixture") throw new Exception("Hosted Swap did not route to its owning comparison.");
+        SetTexts("", "");
+    }
+    async Task RunLayoutSmoke(string screenshot)
+    {
+        if (editors.Orientation != Orientation.Vertical || CommandBar.Parent == null || !CommandBar.Visible) throw new Exception("Default side-by-side workspace or command host is missing.");
+        stacked.Checked = true; stacked.Checked = false;
+        string left = string.Join('\n', Enumerable.Range(0, 500).Select(i => $"row {i:D3} old " + new string('x', 100)));
+        string right = left.Replace("old", "new", StringComparison.Ordinal);
+        SetTexts(left, right); leftText.ClearUndo(); leftText.Select(leftText.TextLength, 0); leftText.SelectedText = " typed";
+        string typed = leftText.Text; await Compare(); SetSelectedDifference(100);
+        leftText.Select(7, 3); rightText.Select(9, 2);
+        var map = scrollMap; long generation = detailGeneration; int selected = differenceIndex;
+        bool leftDirty = dirtyLeft, rightDirty = dirtyRight; int history = undo.Count;
+        foreach (bool wrapped in new[] { false, true })
+        {
+            wrap.Checked = wrapped;
+            // Establish typing after the native WordWrap setter; this gate tests
+            // layout reflow of both wrapped and unwrapped editors.
+            SetTexts(left, right); leftText.ClearUndo(); leftText.Select(leftText.TextLength, 0); leftText.SelectedText = " typed";
+            await Compare(); SetSelectedDifference(100); leftText.Select(7, 3); rightText.Select(9, 2);
+            map = scrollMap; generation = detailGeneration; selected = differenceIndex;
+            leftDirty = dirtyLeft; rightDirty = dirtyRight;
+            leftText.ScrollDisplayTo(leftText.DisplayLineAt(leftText.LogicalStarts[100]));
+            for (int cycle = 0; cycle < 4; cycle++)
+            {
+                int leftLine = leftText.LogicalAt(leftText.RawAtDisplayLine(leftText.FirstDisplayLine));
+                int rightLine = rightText.LogicalAt(rightText.RawAtDisplayLine(rightText.FirstDisplayLine));
+                stacked.Checked = !stacked.Checked; await Task.Delay(20);
+                if (visiblePaintTask != null) await visiblePaintTask;
+                if (leftText.Text != typed || rightText.Text != right || leftText.SelectionStart != 7 || leftText.SelectionLength != 3 || rightText.SelectionStart != 9 || rightText.SelectionLength != 2 || dirtyLeft != leftDirty || dirtyRight != rightDirty || undo.Count != history || !ReferenceEquals(map, scrollMap) || detailGeneration != generation || differenceIndex != selected)
+                    throw new Exception("Changing editor layout changed comparison or editor state.");
+                if (leftText.LogicalAt(leftText.RawAtDisplayLine(leftText.FirstDisplayLine)) != leftLine || rightText.LogicalAt(rightText.RawAtDisplayLine(rightText.FirstDisplayLine)) != rightLine)
+                    throw new Exception("Changing editor layout lost a logical viewport anchor.");
+            }
+            leftText.Undo(); if (leftText.Text != left) throw new Exception($"Layout switch lost native typing undo (wrapped={wrapped}, CanUndo={leftText.CanUndo}).");
+            leftText.Redo(); if (leftText.Text != typed) throw new Exception("Layout switch lost native typing redo.");
+        }
+        Merge(true, true); stacked.Checked = true; Undo();
+        if (rightText.Text != right || leftText.Text != typed) throw new Exception("Layout switch lost merge undo.");
+        wrap.Checked = false; stacked.Checked = false;
+        await Compare(); var retainedMap = scrollMap;
+        double retainedProportion = resultProportion;
+        showResults.Checked = false;
+        if (!workspace.Panel2Collapsed || !showResults.Visible || !ReferenceEquals(scrollMap, retainedMap)) throw new Exception("Results collapse changed comparison state or hid its toggle.");
+        showResults.Checked = true;
+        if (workspace.Panel2Collapsed || Math.Abs(resultProportion - retainedProportion) > .02) throw new Exception("Results expansion lost its split proportion.");
+        var form = (DarkWindow)FindForm()!;
+        foreach (int width in new[] { 900, 1140, 1260 })
+        {
+            form.Size = new(width, 620); await Task.Delay(20);
+            foreach (bool stack in new[] { false, true })
+            {
+                stacked.Checked = stack; await Task.Delay(20); CommandBar.VisitPages(CommandBar.CheckBounds);
+                foreach (var box in new[] { leftText, rightText }) if (box.Width < 100 || box.Height < box.Font.Height) { form.CapturePreview(Path.ChangeExtension(screenshot, ".layout-failure.png")); throw new Exception($"Layout leaves no usable editor viewport: width={width}, stacked={stack}, editor={box.Size}, deck={CommandBar.Height}, workspace={workspace.Size}, split={workspace.SplitterDistance}, proportions={editorProportion}/{resultProportion}."); }
+                foreach (var header in new[] { leftHeader, rightHeader }) foreach (Control child in header.Controls)
+                    if (!header.ClientRectangle.Contains(child.Bounds)) throw new Exception("Pane path or Browse is clipped.");
+                if (width == 1260) form.CapturePreview(Path.ChangeExtension(screenshot, stack ? ".stacked.png" : ".side-by-side.png"));
+            }
+        }
+        SetTexts(left, right); var pending = Compare(); stacked.Checked = !stacked.Checked;
+        CommandBar.VisitPages(() => { if (cancel.Visible) cancel.PerformClick(); }); await pending;
+        if (completedResult || cancel.Enabled || visiblePaintPlan.Length != 0) throw new Exception("Layout switch interfered with comparison cancellation.");
+        stacked.Checked = false; wrap.Checked = false; dirtyLeft = dirtyRight = false; undo.Clear(); SetTexts("", ""); InvalidateComparison();
+        Console.WriteLine("Layout default, reflow, viewport, undo, results, dimensions and cancellation checks: passed.");
+    }
     async Task RunGranularSmoke()
     {
         Program.CheckArgumentRouting();
+        if (cancel.Enabled) throw new Exception("Cancel is enabled without an active comparison.");
+        void CheckPassiveSurfaces(Control root)
+        {
+            foreach (Control child in root.Controls)
+            {
+                if (child is Label or CheckBox or RadioButton && child.Dock != DockStyle.Bottom && child.BackColor != Color.Transparent)
+                    throw new Exception("A passive control obscures its containing surface.");
+                CheckPassiveSurfaces(child);
+            }
+        }
+        CheckPassiveSurfaces(this);
+        if (DarkTheme.GridSelectionOutline(SystemColors.Highlight, true).ToArgb() != SystemColors.HighlightText.ToArgb() ||
+            DarkTheme.GridSelectionOutline(SystemColors.Window, true).ToArgb() != SystemColors.WindowText.ToArgb())
+            throw new Exception("High-contrast grid outline does not contrast with row selection.");
         if (leftText.AccessibleName != "Left Text" || rightText.AccessibleName != "Right Text") throw new Exception("Editor accessible names are missing.");
         mode.SelectedItem = "Text"; leftPath.Clear(); rightPath.Clear();
         SetTexts("replacement", new string('d', TextComparison.MaxCharacters / 2));
@@ -562,6 +794,18 @@ sealed class CompareView : UserControl
         CheckClearedEdit(decoratedAfter, 6);
         leftText.Undo(); await WaitForDecorationClear(); CheckClearedEdit(decoratedBefore, 8);
         leftText.Redo(); await WaitForDecorationClear(); CheckClearedEdit(decoratedAfter, 6);
+        foreach (var edit in new[] { (Length: 0, Text: "inserted "), (Length: 8, Text: "") })
+        {
+            SetTexts("prefix original value\nlast", "prefix revised value\nlast"); await Compare();
+            string beforeEdit = leftText.Text;
+            leftText.Select(7, edit.Length); leftText.SelectedText = edit.Text; string afterEdit = leftText.Text;
+            await WaitForDecorationClear(); CheckClearedEdit(afterEdit, Math.Max(1, edit.Text.Length));
+            for (int cycle = 0; cycle < 2; cycle++)
+            {
+                leftText.Undo(); await WaitForDecorationClear(); CheckClearedEdit(beforeEdit, 8);
+                leftText.Redo(); await WaitForDecorationClear(); CheckClearedEdit(afterEdit, Math.Max(1, edit.Text.Length));
+            }
+        }
         SetTexts("prefix original value\nlast", "prefix revised value\nlast"); await Compare();
         Navigate(-1); if (differenceIndex != textResult!.Differences - 1) throw new Exception("First Previous did not select the last difference.");
         granularity.SelectedIndex = (int)HighlightGranularity.Character; var stale = ColorTextAsync();
@@ -621,6 +865,7 @@ sealed class CompareView : UserControl
         SetTexts(gridLines, gridLines); await Compare(false);
         granularity.SelectedIndex = 1; await ColorTextAsync();
         if (!summary.Contains("Grid Shows First 10,000 Rows", StringComparison.Ordinal)) throw new Exception("Granularity refresh lost the retained-grid scope warning.");
+        await RunLazyPaintSmoke();
         SetTexts(lines, "short"); await Compare(); leftText.ScrollHorizontalTo(300);
         if (rightText.HorizontalPosition != 0) throw new Exception("Narrow destination horizontal scroll was not clamped.");
         // Readiness must be independent of retained row count.
@@ -635,6 +880,64 @@ sealed class CompareView : UserControl
             if (!completedResult || reportRows.Count != 4) throw new Exception("Applied tab separator did not split actual table input.");
         }
         finally { File.Delete(temporary); leftPath.Clear(); rightPath.Clear(); mode.SelectedItem = "Text"; dirtyLeft = dirtyRight = false; SetTexts("", ""); }
+    }
+    async Task RunLazyPaintSmoke()
+    {
+        string left = string.Join('\n', Enumerable.Range(0, 500).Select(i => $"row {i:D3} old"));
+        string right = string.Join('\n', Enumerable.Range(0, 500).Select(i => $"row {i:D3} new"));
+        granularity.SelectedIndex = (int)HighlightGranularity.Word;
+        SetTexts(left, right); await Compare();
+        Color highlight = SystemInformation.HighContrast ? SystemColors.Highlight : DarkTheme.Amber;
+        void CheckColor(ComparisonEditor box, int line, Color expected, string reason)
+        {
+            int start = box.SelectionStart, length = box.SelectionLength;
+            try
+            {
+                int end = line + 1 < box.LogicalStarts.Length ? box.LogicalStarts[line + 1] - 1 : box.TextLength;
+                box.Select(end - 3, 3);
+                if (box.SelectionBackColor.ToArgb() != expected.ToArgb()) throw new Exception(reason);
+            }
+            finally { box.Select(start, length); }
+        }
+        async Task WaitForPaint()
+        {
+            await Task.Delay(20);
+            if (visiblePaintTask != null) await visiblePaintTask;
+        }
+        if (paintedDetail.Count(value => value) >= visiblePaintPlan.Length || results.Rows.Count != 500) throw new Exception("Lazy renderer eagerly painted offscreen content or changed retained grid rows.");
+        CheckColor(leftText, 300, leftText.BackColor, "Offscreen fixture was unexpectedly painted.");
+        SetSelectedDifference(300); await WaitForPaint();
+        CheckColor(leftText, 300, highlight, "Difference navigation did not paint newly visible left detail.");
+        CheckColor(rightText, 300, highlight, "Difference navigation did not paint newly visible right detail.");
+        leftText.Select(3, 2); rightText.Select(4, 2); bool modified = leftText.Modified;
+        leftText.ScrollDisplayTo(120); await WaitForPaint();
+        if (leftText.SelectionStart != 3 || leftText.SelectionLength != 2 || rightText.SelectionStart != 4 || leftText.Modified != modified) throw new Exception("Lazy scrolling changed selection or modified state.");
+        CheckColor(leftText, 120, highlight, "Scrolling did not paint left detail.");
+        CheckColor(rightText, 120, highlight, "Synchronized scrolling did not paint right detail.");
+        syncScrolling.Checked = false; rightText.ScrollDisplayTo(410); await WaitForPaint();
+        CheckColor(rightText, 410, highlight, "Independent scrolling did not paint right detail.");
+        string wide = new('q', 500);
+        SetTexts(string.Join('\n', Enumerable.Range(0, 30).Select(i => $"row {i:D3} {wide} old")), string.Join('\n', Enumerable.Range(0, 30).Select(i => $"row {i:D3} {wide} new")));
+        wrap.Checked = true; await Compare();
+        CheckColor(leftText, 5, leftText.BackColor, "Wrapped fixture did not leave a later logical line offscreen.");
+        wrap.Checked = false; await WaitForPaint();
+        CheckColor(leftText, 5, highlight, "Wrap reflow left newly visible detail unpainted.");
+        SetTexts(left, right); await Compare(); leftText.ScrollDisplayTo(120); await WaitForPaint();
+        syncScrolling.Checked = true;
+        var pending = ColorTextAsync(); leftText.Select(leftText.TextLength, 0); leftText.SelectedText = " stale"; await pending;
+        for (int i = 0; i < 100 && clearQueued; i++) await Task.Delay(1);
+        if (detail != null || textResult != null || completedResult || visiblePaintPlan.Length != 0 || hasDecoration) throw new Exception("Pending lazy paint survived input mutation.");
+        CheckColor(leftText, 120, leftText.BackColor, "Stale lazy highlight survived invalidation.");
+        SetTexts(left, right); var cancelled = Compare();
+        if (!cancel.Enabled || cancellation == null) throw new Exception("Running comparison did not enable Cancel.");
+        cancel.PerformClick(); await cancelled;
+        if (cancel.Enabled || completedResult || textResult != null || detail != null || visiblePaintPlan.Length != 0) throw new Exception("Cancelled comparison retained a lazy paint plan or enabled Cancel.");
+        var superseded = Compare(); SetTexts("latest old", "latest new"); await Compare(); await superseded;
+        if (!completedResult || cancel.Enabled || comparedLeft != "latest old" || comparedRight != "latest new" || detail == null) throw new Exception("An obsolete comparison replaced the latest lazy result or left Cancel enabled.");
+        var changingMode = ColorTextAsync(); mode.SelectedItem = "Tables"; await changingMode;
+        if (detail != null || visiblePaintPlan.Length != 0 || completedResult) throw new Exception("Mode change retained lazy text detail.");
+        mode.SelectedItem = "Text";
+        Console.WriteLine("Lazy detail navigation, scrolling, wrap, selection and stale-generation checks: passed.");
     }
     async Task RunBlockMergeSmoke(string screenshot)
     {
@@ -698,5 +1001,5 @@ sealed class CompareView : UserControl
         }
         finally { dirtyLeft = dirtyRight = false; if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
-    protected override void Dispose(bool disposing) { if (disposing) { disposed = true; cancellation?.Cancel(); CancelDetail(); help.Dispose(); } base.Dispose(disposing); }
+    protected override void Dispose(bool disposing) { if (disposing) { disposed = true; cancellation?.Cancel(); CancelDetail(); help.Dispose(); CommandBar.Parent?.Controls.Remove(CommandBar); CommandBar.Dispose(); } base.Dispose(disposing); }
 }

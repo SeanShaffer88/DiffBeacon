@@ -25,6 +25,12 @@ sealed class ComparisonEditor : RichTextBox
     public int LogicalAt(int rawIndex) { int at = Array.BinarySearch(LogicalStarts, Math.Max(0, rawIndex)); return at >= 0 ? at : Math.Max(0, ~at - 1); }
     public int HorizontalPosition { get { var info = new ScrollInfo { Size = (uint)Marshal.SizeOf<ScrollInfo>(), Mask = 4 }; return GetScrollInfo(Handle, 0, ref info) ? info.Position : 0; } }
     public void ScrollDisplayTo(int line) => Send(Handle, 0xB6, 0, line - FirstDisplayLine);
+    internal (int RawIndex, int Horizontal) CaptureViewport() => (Math.Max(0, RawAtDisplayLine(FirstDisplayLine)), HorizontalPosition);
+    internal void RestoreViewport((int RawIndex, int Horizontal) anchor)
+    {
+        ScrollHorizontalTo(anchor.Horizontal);
+        ScrollDisplayTo(DisplayLineAt(Math.Min(anchor.RawIndex, TextLength)));
+    }
     public void ScrollHorizontalTo(int x)
     {
         var info = new ScrollInfo { Size = (uint)Marshal.SizeOf<ScrollInfo>(), Mask = 3 };
@@ -73,6 +79,12 @@ sealed class ComparisonEditor : RichTextBox
         if (box.Text != "base typed unrecorded") throw new Exception("Nested decoration changed native redo.");
         box.Select(box.TextLength, 0); box.SelectedText = " recorded"; box.Undo();
         if (box.Text != "base typed unrecorded") throw new Exception("The outer suspension did not restore recording.");
+        box.Select(2, 3); bool modified = box.Modified; bool rejected = false;
+        try { box.Decorate(() => { box.SelectAll(); box.SelectionBackColor = Color.Blue; throw new InvalidOperationException("Expected paint failure"); }); }
+        catch (InvalidOperationException ex) when (ex.Message == "Expected paint failure") { rejected = true; }
+        if (!rejected || box.SelectionStart != 2 || box.SelectionLength != 3 || box.Modified != modified) throw new Exception("Paint failure did not restore editor state.");
+        box.Select(box.TextLength, 0); box.SelectedText = " after failure"; box.Undo();
+        if (box.Text != "base typed unrecorded") throw new Exception("Paint failure left native undo suspended.");
         // A native owner can disable recording independently; balanced suspension
         // must leave it disabled. EM_SETUNDOLIMIT(0) also clears old undo records.
         Send(box.Handle, 0x452, 0, 0);

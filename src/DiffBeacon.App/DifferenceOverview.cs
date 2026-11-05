@@ -14,12 +14,19 @@ sealed class DifferenceOverview : Control
     public int MarkerCount => markers.Length;
     public int SelectedIndex => selectedIndex;
     public Change? SelectedStatus => selectedIndex >= 0 ? markers[selectedIndex].Status : null;
-    int TrackLeft => 12;
-    int TrackWidth => Math.Max(1, ClientSize.Width - 25);
+    int Scale(int value) => LogicalToDeviceUnits(value);
+    int TrackLeft => Scale(12);
+    int TrackWidth => Math.Max(1, ClientSize.Width - 2 * TrackLeft - 1);
+    int MarkerTop => Scale(9);
+    int MarkerHeight => Scale(16);
+    int RailY => MarkerTop + MarkerHeight / 2;
+    int CaptionHeight => Math.Max(Font.Height, TextRenderer.MeasureText("Agjpqy", Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPadding).Height);
+    Rectangle CaptionBounds => new(TrackLeft, MarkerTop + MarkerHeight + Scale(9), Math.Max(1, ClientSize.Width - 2 * TrackLeft), CaptionHeight);
+    void FitHeight() { Height = CaptionBounds.Bottom + Scale(8); Invalidate(); }
     public DifferenceOverview()
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
-        Height = 42; Dock = DockStyle.Top; TabStop = true;
+        Dock = DockStyle.Top; TabStop = true; FitHeight();
         BackColor = DarkTheme.Surface; ForeColor = DarkTheme.Muted;
         AccessibleName = "Difference Overview"; AccessibleRole = AccessibleRole.Slider;
         AccessibleDescription = "Differences positioned across all aligned rows. Click or drag to jump; Left and Right move; Home and End select first and last.";
@@ -45,6 +52,8 @@ sealed class DifferenceOverview : Control
         foreach (var marker in markers) { int x = XForRow(marker.Row); if (x != previous) { pixels.Add((x, marker.Status)); previous = x; } }
     }
     protected override void OnResize(EventArgs e) { base.OnResize(e); RebuildPixels(); }
+    protected override void OnFontChanged(EventArgs e) { base.OnFontChanged(e); FitHeight(); }
+    protected override void OnDpiChangedAfterParent(EventArgs e) { base.OnDpiChangedAfterParent(e); FitHeight(); RebuildPixels(); }
     public void ActivateAt(int x)
     {
         if (!Enabled || markers.Length == 0) return;
@@ -74,22 +83,52 @@ sealed class DifferenceOverview : Control
         base.OnPaint(e);
         Color background = SystemInformation.HighContrast ? SystemColors.Window : BackColor;
         e.Graphics.Clear(background);
-        using var rail = new Pen(DarkTheme.DecorativeBorder);
-        e.Graphics.DrawLine(rail, TrackLeft, 14, TrackLeft + TrackWidth, 14);
+        using var rail = new Pen(DarkTheme.DecorativeBorder, Scale(1));
+        e.Graphics.DrawLine(rail, TrackLeft, RailY, TrackLeft + TrackWidth, RailY);
         foreach (var pixel in pixels)
         {
             Color color = SystemInformation.HighContrast ? SystemColors.WindowText : pixel.Status switch { Change.LeftOnly or Change.RightOnly => Color.FromArgb(79, 185, 177), _ => DarkTheme.Amber };
-            using var brush = new SolidBrush(color); e.Graphics.FillRectangle(brush, pixel.X - 2, 6, 4, 16);
+            using var brush = new SolidBrush(color); e.Graphics.FillRectangle(brush, pixel.X - Scale(2), MarkerTop, Scale(4), MarkerHeight);
         }
         if (selectedIndex >= 0)
         {
             int x = XForRow(markers[selectedIndex].Row);
-            using var selected = new Pen(DarkTheme.Focus, 2);
-            e.Graphics.DrawRectangle(selected, x - 4, 3, 8, 22);
+            using var selected = new Pen(DarkTheme.Focus, Scale(2));
+            e.Graphics.DrawRectangle(selected, x - Scale(4), MarkerTop - Scale(3), Scale(8), MarkerHeight + Scale(6));
         }
         string label = markers.Length == 0 ? "Difference Overview · Compare Text To Show Markers" : $"Difference Overview · {markers.Length:N0} Markers · {(selectedIndex >= 0 ? $"Selected {selectedIndex + 1}: {markers[selectedIndex].Status}" : "Click Or Use Arrow Keys")}";
-        TextRenderer.DrawText(e.Graphics, label, Font, new Rectangle(12, 25, Math.Max(1, Width - 24), 16), DarkTheme.HighContrast ? SystemColors.WindowText : ForeColor, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
-        if (Focused) ControlPaint.DrawFocusRectangle(e.Graphics, new Rectangle(1, 1, Math.Max(0, Width - 3), Math.Max(0, Height - 3)), SystemColors.Highlight, background);
+        TextRenderer.DrawText(e.Graphics, label, Font, CaptionBounds, DarkTheme.HighContrast ? SystemColors.WindowText : ForeColor, TextFormatFlags.SingleLine | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+        if (Focused) ControlPaint.DrawFocusRectangle(e.Graphics, new Rectangle(Scale(1), Scale(1), Math.Max(0, Width - Scale(3)), Math.Max(0, Height - Scale(3))), SystemColors.Highlight, background);
+    }
+    internal void SmokeGeometryAndPaint(string screenshot)
+    {
+        using var sample = new DifferenceOverview { Dock = DockStyle.None, Width = 600, Font = Font };
+        using var font14 = new Font("Segoe UI", 14);
+        using var font18 = new Font("Segoe UI", 18);
+        _ = sample.Handle;
+        foreach (var fixture in new[] { ("empty", 600, false, Font), ("populated", 600, true, Font), ("narrow", 280, true, Font), ("font14", 600, true, font14), ("font18-narrow", 280, true, font18) })
+        {
+            sample.Width = fixture.Item2; sample.Font = fixture.Item4;
+            sample.SetRows(fixture.Item3 ? TextComparison.Compare("old\nsame\nremoved", "new\nsame\nadded", new()).Rows : null);
+            sample.DifferenceRequested += sample.SetSelected;
+            if (sample.MarkerCount > 0)
+            {
+                sample.OnKeyDown(new KeyEventArgs(Keys.End));
+                if (sample.SelectedIndex != sample.MarkerCount - 1) throw new Exception("Overview End navigation failed.");
+                sample.OnKeyDown(new KeyEventArgs(Keys.Home));
+                sample.OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, sample.MarkerX(sample.MarkerCount - 1), sample.RailY, 0));
+                sample.OnMouseMove(new MouseEventArgs(MouseButtons.Left, 0, sample.MarkerX(0), sample.RailY, 0));
+                sample.OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, sample.MarkerX(0), sample.RailY, 0));
+                if (sample.SelectedIndex != 0 || sample.Capture || sample.dragging) throw new Exception("Overview drag/capture navigation failed.");
+            }
+            sample.DifferenceRequested -= sample.SetSelected;
+            Rectangle caption = sample.CaptionBounds;
+            if (caption.Height < sample.Font.Height || caption.Bottom > sample.Height - sample.Scale(8) || caption.Top <= sample.MarkerTop + sample.MarkerHeight + sample.Scale(3)) throw new Exception("Overview caption overlaps its track or lacks measured text/bottom padding.");
+            using var bitmap = new Bitmap(sample.Width, sample.Height);
+            sample.DrawToBitmap(bitmap, sample.ClientRectangle);
+            bitmap.Save(Path.ChangeExtension(screenshot, $".overview-{fixture.Item1}.png"));
+        }
+        Console.WriteLine("Overview empty/populated/narrow/larger-font geometry, painting and keyboard/drag checks: passed.");
     }
     protected override AccessibleObject CreateAccessibilityInstance() => new OverviewAccessibility(this);
     sealed class OverviewAccessibility(DifferenceOverview owner) : ControlAccessibleObject(owner)
