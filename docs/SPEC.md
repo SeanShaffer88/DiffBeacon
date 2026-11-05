@@ -1,10 +1,16 @@
 # DiffBeacon Operational Specification
 
-Status: first implementation specification, 2026-11-03. The user selected Core Comparison And Safe Merging for the first build (controller confirmation). This is a core milestone toward the supplied feature list, not a claim of feature parity.
+Status: alpha / core preview. The current product target is a complete local comparison and merge workflow replacement. The first milestone was Core Comparison And Safe Merging; its narrower boundaries below remain historical milestone contracts, not a reduction of the full product target. Current completion is tracked in FEATURES.md; full replacement readiness is not established.
+
+## Product Completion And Free-Only Policy
+
+All required workflows must operate with zero mandatory paid software, subscriptions or metered APIs. Document, spreadsheet and archive support stays Planned until free local implementations are implemented and tested. Installed Office, paid codecs and paid libraries cannot be prerequisites. Third-party dependencies require prior user approval. Exclude billed, metered and paid-only integrations. Cloud or AI work is Deferred unless a verified zero-cost path or local approach satisfies the same policy; a free tier does not guarantee no cost.
+
+Complete the ordered milestones and acceptance gates in FEATURES.md. Readiness requires real daily workflow tests, explicit incomplete comparison/save outcomes, file safety, keyboard accessibility, DPI and large-file checks. Passing the current core tests alone does not establish completion.
 
 ## Verified Constraints
 
-- Existing repository: MIT license and README only; clean working tree and no Git lock observed.
+- Historical initial intake: repository contained an MIT license and README only; the tree was clean with no Git lock observed at that intake. Preserve subsequent unrelated work.
 - Windows x64, .NET SDK 10.0.403, Microsoft.WindowsDesktop.App.Ref installed. Use `net10.0-windows`, WinForms, and the .NET standard library. No NuGet packages, external wrappers, or downloaded runtimes.
 - Use Proper Case UI labels. Preserve the license and unrelated work. No telemetry, AI requests, or automatic network access.
 - Produce and inspect a UI mockup before finalizing the layout. Five distinct icon concepts are separate deliverables; no selection is implied.
@@ -15,7 +21,7 @@ Status: first implementation specification, 2026-11-03. The user selected Core C
 - `src/DiffBeacon.Core`: platform-neutral `net10.0` library for comparison, parsing, reports, sessions, and safe file operations.
 - `src/DiffBeacon.App`: `net10.0-windows` WinExe/WinForms shell and command dispatch. UI work stays on the UI thread; comparison/file IO runs asynchronously with cancellation.
 - `tests/DiffBeacon.Tests`: dependency-free console test harness referencing Core, returning nonzero on failure. Never simulate test results.
-- `docs/FEATURES.md`: every requested feature mapped to Implemented, Partial, or Planned, with precise limits. README advertises only verified behavior.
+- `docs/FEATURES.md`: every requested feature mapped to Implemented, Partial, Planned, or Deferred, with precise limits. README advertises only verified behavior.
 - `docs/CLI.md`: actual supported invocation, Git difftool/mergetool configuration, exit codes, and examples.
 - `scripts`: reproducible build/test/publish scripts. Windows CI must execute the same build and core tests.
 
@@ -63,7 +69,7 @@ Required positional mode supports differing lengths and binary zeros. Smart offs
 
 Parse CSV/TSV with configurable delimiter, optional header row, quoted delimiters/newlines, doubled quotes, empty fields, Unicode, and ragged rows. Reject unclosed quoted fields with line/column context. Enforce file/row/cell limits before rendering. Compare by row and column position; visible grid colors changed/missing cells. Header handling must not hide duplicate header names. Ignore-column support and cell/row merge are optional only if round-trip saves preserve quoting and the delimiter and are tested.
 
-XLS/XLSX are Planned unless a real multi-sheet parser or optional installed-Excel COM path is implemented and tested. Never parse ZIP/XML bytes or rename a CSV to claim Excel support.
+XLS/XLSX remain Planned until a free local multi-sheet parser is implemented and tested, with prior approval for any third-party dependency. Installed Excel/Office is not a prerequisite. Reading container bytes alone or renaming CSV does not establish spreadsheet support.
 
 ## File Safety, Sessions, Reports, CLI
 
@@ -76,7 +82,7 @@ XLS/XLSX are Planned unless a real multi-sheet parser or optional installed-Exce
 
 ## UI Direction
 
-Native Windows application with classic menu/toolbar, mode navigation (Text, Folders, Binary, Tables), tabbed workspace, left/right path controls and Browse, comparison options, two comparison panes, and status/count footer. Use a professional light theme, teal accents, amber changed rows, Segoe UI for chrome, Consolas for compared content, readable selection/focus states, keyboard-accessible controls, resize support, and explicit labels beyond color. Custom drawing must not impair high-contrast readability. Full skinning/docking/ribbon choices are not required for the core milestone. Provide an actual-app `--smoke` screenshot and a clearly labeled prototype UI mockup using the same design; parent handles the five generated icon concepts.
+Native Windows application with classic menu/toolbar, mode navigation (Text, Folders, Binary, Tables), tabbed workspace, left/right path controls and Browse, comparison options, two comparison panes, and status/count footer. Use the existing near-black/charcoal workspace, burgundy accents, custom dark titlebar, vertically stacked source panes, Segoe UI for chrome, Consolas for compared content, readable selection/focus states, keyboard-accessible controls, resize support, and explicit labels beyond color. Custom drawing must not impair high-contrast readability. Full skinning/docking/ribbon choices are not required for the core milestone. Provide an actual-app `--smoke` screenshot and a clearly labeled prototype UI mockup using the same design; parent handles the five generated icon concepts.
 
 ## Verification Gates
 
@@ -92,6 +98,40 @@ Native Windows application with classic menu/toolbar, mode navigation (Text, Fol
 
 ## Remaining Product Scope
 
-Track each item explicitly in FEATURES.md. Advanced requested capabilities are not implied by core availability: full virtualized multi-GB text diff/edit; granular character/word diff; all ignore/filter/resync/column controls; relational map/bookmarks/syntax definitions; EBCDIC/DBCS; URL download; three-folder view; expandable folder trees; remote FTP/SFTP/FTPS; password ZIP/RAR/JAR browsing; scheduler/Explorer integration; full reversible/custom folder sync; smart binary alignment; Excel multi-sheet compare/merge; DOC/DOCX/PDF/RTF extraction; full three-way and word merge; Git overlays/repositories/branches/blame/version browser; imported themes/dockable panes/ribbon; color printing/report layout; cloud connectors; Pieces analysis; Visual Studio extension; installer.
+Track each item explicitly in FEATURES.md. Advanced requested capabilities are not implied by core availability: full virtualized multi-GB text diff/edit; all ignore/filter/resync/column controls; relational map/bookmarks/syntax definitions; EBCDIC/DBCS; URL download; three-folder view; expandable folder trees; remote FTP/SFTP/FTPS; password ZIP/RAR/JAR browsing; scheduler/Explorer integration; full reversible/custom folder sync; smart binary alignment; Excel multi-sheet compare/merge; DOC/DOCX/PDF/RTF extraction; full three-way and word merge; Git overlays/repositories/branches/blame/version browser; imported themes/dockable panes/ribbon; color printing/report layout; optional verified zero-cost cloud connectors or local AI analysis; Visual Studio extension; installer.
 
-No user clarification blocks the native local core. Decisions requiring user input before dependent work: approval for third-party format/transport libraries; desired cloud/AI account providers and credential handling; whether Office-installed-only format support is acceptable; final icon selection. Full parity needs staged development and integration acceptance, not a feature checklist marked complete after a prototype.
+No user clarification blocks the native local core. Dependent third-party format/transport libraries require prior user approval. Any proposed cloud/AI credential handling requires an eligible verified zero-cost path first. The lighthouse icon is selected. Full completion requires staged development and integration acceptance; the current preview does not establish it.
+
+## Approved Folder Filter Slice
+
+`FolderFilters.Parse(fileFilterText, ignoredDirectoriesText)` creates an immutable BCL-only snapshot before traversal. Blank fields preserve the original all-files behavior. Semicolon-separated nonempty file clauses have OR-positive basename globs, and case-insensitive ordinal `NOT` followed by whitespace excludes. Exclusions win; no positive clauses implies `*`. Only `*` and `?` wildcard syntax is accepted; `*.*` requires a dot. Basenames match at all depths, ignoring case. Reject paths/separators/colon, brackets/braces, `**`, controls/NUL and bare/missing-operand NOT. Each field allows at most 4096 characters and 64 items; each operand allows at most 256 characters. Ignore directories are semicolon-separated exact names, ignoring case; reject wildcards, paths, controls, `.` and `..`. No default excludes and never exclude the selected root itself.
+
+Prune ignored directories before traversing them and filter files before retention/content reads using the same immutable scope on both sides. Count excluded enumerated files and directly pruned directories separately per root. Count all enumerated entries, including exclusions, toward a 1,000,000-entry per-root ceiling. Keep existing retained-file/result and queued-directory bounds. In-scope access/content errors and reparse points remain incomplete; out-of-scope exclusions do not become errors or equal rows. Report explicit incomplete reasons. Filtered summaries/HTML contain normalized rules and counts; zero rows say No Files Match These Filters without claiming whole-folder equality.
+
+Folder-only labeled filter fields and tooltips appear below path/options controls. Scope edits cancel/invalidate pending results and reports; text-only controls are hidden/disabled in folder mode. Mode switches retain fields. Compare validates a snapshot before starting worker traversal. Session v2 stores optional filter texts, validates them, and restores scope; v1 reads with blank defaults and cannot silently store nonblank scope. There are no CLI filter arguments. Folder comparison remains read-only.
+
+## Approved Two-Way Aligned Block Merge Slice
+
+`AlignedBlockMerge.Plan` receives immutable editor snapshots, a fresh strict TextResult, comparison options, the selected difference ordinal and direction. It verifies all ignore options are off, rejects positional fallback/error/stale rows, and checks the supplied result against a fresh raw line alignment. The ordinal counts non-Equal rows; map it into the full aligned Rows before expanding to the maximal contiguous non-Equal hunk. Plan exposes zero-based source/destination logical-line start/count, aligned-row range and proposed output. Replace only the destination span with source raw logical lines; an absent source span deletes, and a missing destination span inserts after the prior aligned destination line. Preserve all empty/trailing tokens using TextComparison.Lines and LF joining. Reject invalid/no-op selections, combined input/output character/line limits and cancellation before proposing a mutation. `Apply` checks both current editor snapshots ordinally against the plan before returning output; planning/apply perform no file IO.
+
+The wrapping command toolbar includes Block → Right and Left ← Block with accessible guidance/tooltips. Enable only for a fresh exact Text comparison and selected difference; source/option/path/mode edits disable actions. Planning also enforces the actual destination RichTextBox limit of TextComparison.MaxCharacters / 2 (2 million characters), before output allocation, in addition to combined budgets. Plan/apply completes before adding exactly one existing 20-item undo snapshot. Change only the destination editor, invalidate comparison/report/grid/map/selection, then show Block Merged Into Right/Left Editor · Review And Save As To Write A File. Rejections do not mutate editors or undo. Free-text selection/all merge behavior, explicit saving, three-way review and other modes remain unchanged. UI mockup precedes toolbar finalization; native smoke captures the actual block toolbar separately.
+
+
+## Responsive Commands And Caption Input
+
+Command bars wrap with automatic height and no horizontal scrolling. Three-way conflict and merged-preview panes share one bottom review command bar across the full lower workspace, including a 200px conflict pane. Preserve feasible user splitter distances while retaining source/review minimum row budgets at narrow widths and 620px height.
+
+A maximized caption press captures until the centered system drag threshold is crossed. Restore the saved normal size with signed screen coordinates and pointer anchoring, clear capture state before release/reentrancy, then queue native caption movement only for a held physical left button. Cancel pending capture on release, capture loss, cancel mode, deactivation, state changes and disposal. Single-click preserves maximization; double-click toggles it. See VERIFICATION.md for runtime evidence and remaining timing/display acceptance gaps.
+
+
+## Granular text and viewport contract
+
+Retain WinForms/RichEdit, custom charcoal/burgundy chrome and stacked panes. The original controls mockup is artifacts/Granular-Controls-Mockup.svg. Text-only Highlight Line/Word/Character defaults to Line; Sync scrolling defaults true. Session v3 appends granularity, sync, wrap and separator to existing scope metadata; v1/v2 retain backward defaults and must reject nondefault new fields when writing.
+
+Core produces immutable per-row raw UTF-16 spans and monotonic bidirectional logical-line maps. App detail uses immutable snapshots, cancellation and a generation guard; only the current result/granularity is retained. Rendering yields every 256 spans and caps visible decoration at 20,000 spans with a status limit. Native formatting suspends and resumes TOM undo, restores selection, modified state and display-line/horizontal viewport, and never moves focus. Cached logical offsets come from actual editor text; wrapped display lines are used only for viewport movement. Edits/options/paths clear decorations and invalidate reports/maps.
+
+Fresh exact maps synchronize vertical anchors with reciprocal suppression. Wrap preserves a clamped within-logical-line display offset; unwrapped horizontal pixels clamp independently to destination extent. Scroll paths include native wheel, scrollbar and keyboard messages. Vertical movement uses EM_GETFIRSTVISIBLELINE/EM_EXLINEFROMCHAR/EM_LINEINDEX and EM_LINESCROLL with wParam zero, avoiding the 16-bit EM_GETSCROLLPOS Y limitation. Navigation changes caret/viewport without repainting granular spans.
+
+Selection/all merge validates TextEditProposal before undo push or mutation. First Previous selects the last difference. Report readiness is explicit completed-result state, independent of sample/row count, so equal binary and empty table comparisons can export.
+
+Native definitions were checked against installed Windows SDK 10.0.26100.0 um/TOM.h (Undo slot 22, tomSuspend=-9999995, tomResume=-9999994) and Microsoft documentation: https://learn.microsoft.com/en-us/windows/win32/api/tom/nf-tom-itextdocument-undo and https://learn.microsoft.com/en-us/windows/win32/controls/em-getscrollpos. Do not substitute Undo(0)/Undo(-1). Actual undo/viewport preservation requires native smoke; SDK/header inspection alone is insufficient.

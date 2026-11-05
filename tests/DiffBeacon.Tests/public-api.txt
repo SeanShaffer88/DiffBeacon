@@ -1,0 +1,500 @@
+M DiffBeacon.Core.AlignedBlockMerge Method DiffBeacon.Core.BlockMergePlan Plan(System.String, System.String, DiffBeacon.Core.TextResult, DiffBeacon.Core.CompareOptions, Int32, Boolean, System.Threading.CancellationToken)
+M DiffBeacon.Core.AlignedBlockMerge Method System.String Apply(DiffBeacon.Core.BlockMergePlan, System.String, System.String, System.Threading.CancellationToken)
+M DiffBeacon.Core.BinaryComparison Method DiffBeacon.Core.BinaryResult Compare(System.String, System.String, System.Threading.CancellationToken)
+M DiffBeacon.Core.BinaryResult Constructor Void .ctor(Int64, Int64, Int64, System.Nullable`1[System.Int64], System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.ByteSample])
+M DiffBeacon.Core.BinaryResult Method Boolean Equals(DiffBeacon.Core.BinaryResult)
+M DiffBeacon.Core.BinaryResult Method Boolean Equals(System.Object)
+M DiffBeacon.Core.BinaryResult Method Boolean op_Equality(DiffBeacon.Core.BinaryResult, DiffBeacon.Core.BinaryResult)
+M DiffBeacon.Core.BinaryResult Method Boolean op_Inequality(DiffBeacon.Core.BinaryResult, DiffBeacon.Core.BinaryResult)
+M DiffBeacon.Core.BinaryResult Method DiffBeacon.Core.BinaryResult <Clone>$()
+M DiffBeacon.Core.BinaryResult Method Int32 GetHashCode()
+M DiffBeacon.Core.BinaryResult Method Int64 get_DifferentBytes()
+M DiffBeacon.Core.BinaryResult Method Int64 get_LeftLength()
+M DiffBeacon.Core.BinaryResult Method Int64 get_RightLength()
+M DiffBeacon.Core.BinaryResult Method System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.ByteSample] get_Samples()
+M DiffBeacon.Core.BinaryResult Method System.Nullable`1[System.Int64] get_FirstDifference()
+M DiffBeacon.Core.BinaryResult Method System.String get_Summary()
+M DiffBeacon.Core.BinaryResult Method System.String ToString()
+M DiffBeacon.Core.BinaryResult Method Void Deconstruct(Int64 ByRef, Int64 ByRef, Int64 ByRef, System.Nullable`1[System.Int64] ByRef, System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.ByteSample] ByRef)
+M DiffBeacon.Core.BinaryResult Method Void set_DifferentBytes(Int64)
+M DiffBeacon.Core.BinaryResult Method Void set_FirstDifference(System.Nullable`1[System.Int64])
+M DiffBeacon.Core.BinaryResult Method Void set_LeftLength(Int64)
+M DiffBeacon.Core.BinaryResult Method Void set_RightLength(Int64)
+M DiffBeacon.Core.BinaryResult Method Void set_Samples(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.ByteSample])
+M DiffBeacon.Core.BinaryResult Property Int64 DifferentBytes
+M DiffBeacon.Core.BinaryResult Property Int64 LeftLength
+M DiffBeacon.Core.BinaryResult Property Int64 RightLength
+M DiffBeacon.Core.BinaryResult Property System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.ByteSample] Samples
+M DiffBeacon.Core.BinaryResult Property System.Nullable`1[System.Int64] FirstDifference
+M DiffBeacon.Core.BinaryResult Property System.String Summary
+M DiffBeacon.Core.BlockMergePlan Method Boolean get_ToRight()
+M DiffBeacon.Core.BlockMergePlan Method Int32 get_AlignedRowCount()
+M DiffBeacon.Core.BlockMergePlan Method Int32 get_DestinationCount()
+M DiffBeacon.Core.BlockMergePlan Method Int32 get_DestinationStart()
+M DiffBeacon.Core.BlockMergePlan Method Int32 get_FirstAlignedRow()
+M DiffBeacon.Core.BlockMergePlan Method Int32 get_SourceCount()
+M DiffBeacon.Core.BlockMergePlan Method Int32 get_SourceStart()
+M DiffBeacon.Core.BlockMergePlan Method System.String get_ProposedOutput()
+M DiffBeacon.Core.BlockMergePlan Property Boolean ToRight
+M DiffBeacon.Core.BlockMergePlan Property Int32 AlignedRowCount
+M DiffBeacon.Core.BlockMergePlan Property Int32 DestinationCount
+M DiffBeacon.Core.BlockMergePlan Property Int32 DestinationStart
+M DiffBeacon.Core.BlockMergePlan Property Int32 FirstAlignedRow
+M DiffBeacon.Core.BlockMergePlan Property Int32 SourceCount
+M DiffBeacon.Core.BlockMergePlan Property Int32 SourceStart
+M DiffBeacon.Core.BlockMergePlan Property System.String ProposedOutput
+M DiffBeacon.Core.ByteSample Constructor Void .ctor(Int64, System.Nullable`1[System.Byte], System.Nullable`1[System.Byte])
+M DiffBeacon.Core.ByteSample Method Boolean Equals(DiffBeacon.Core.ByteSample)
+M DiffBeacon.Core.ByteSample Method Boolean Equals(System.Object)
+M DiffBeacon.Core.ByteSample Method Boolean op_Equality(DiffBeacon.Core.ByteSample, DiffBeacon.Core.ByteSample)
+M DiffBeacon.Core.ByteSample Method Boolean op_Inequality(DiffBeacon.Core.ByteSample, DiffBeacon.Core.ByteSample)
+M DiffBeacon.Core.ByteSample Method DiffBeacon.Core.ByteSample <Clone>$()
+M DiffBeacon.Core.ByteSample Method Int32 GetHashCode()
+M DiffBeacon.Core.ByteSample Method Int64 get_Offset()
+M DiffBeacon.Core.ByteSample Method System.Nullable`1[System.Byte] get_Left()
+M DiffBeacon.Core.ByteSample Method System.Nullable`1[System.Byte] get_Right()
+M DiffBeacon.Core.ByteSample Method System.String ToString()
+M DiffBeacon.Core.ByteSample Method Void Deconstruct(Int64 ByRef, System.Nullable`1[System.Byte] ByRef, System.Nullable`1[System.Byte] ByRef)
+M DiffBeacon.Core.ByteSample Method Void set_Left(System.Nullable`1[System.Byte])
+M DiffBeacon.Core.ByteSample Method Void set_Offset(Int64)
+M DiffBeacon.Core.ByteSample Method Void set_Right(System.Nullable`1[System.Byte])
+M DiffBeacon.Core.ByteSample Property Int64 Offset
+M DiffBeacon.Core.ByteSample Property System.Nullable`1[System.Byte] Left
+M DiffBeacon.Core.ByteSample Property System.Nullable`1[System.Byte] Right
+M DiffBeacon.Core.Change Field DiffBeacon.Core.Change Changed
+M DiffBeacon.Core.Change Field DiffBeacon.Core.Change Equal
+M DiffBeacon.Core.Change Field DiffBeacon.Core.Change Error
+M DiffBeacon.Core.Change Field DiffBeacon.Core.Change LeftOnly
+M DiffBeacon.Core.Change Field DiffBeacon.Core.Change RightOnly
+M DiffBeacon.Core.Change Field Int32 value__
+M DiffBeacon.Core.CompareOptions Constructor Void .ctor(Boolean, Boolean, Boolean)
+M DiffBeacon.Core.CompareOptions Method Boolean Equals(DiffBeacon.Core.CompareOptions)
+M DiffBeacon.Core.CompareOptions Method Boolean Equals(System.Object)
+M DiffBeacon.Core.CompareOptions Method Boolean get_IgnoreBlankLines()
+M DiffBeacon.Core.CompareOptions Method Boolean get_IgnoreCase()
+M DiffBeacon.Core.CompareOptions Method Boolean get_IgnoreWhitespace()
+M DiffBeacon.Core.CompareOptions Method Boolean op_Equality(DiffBeacon.Core.CompareOptions, DiffBeacon.Core.CompareOptions)
+M DiffBeacon.Core.CompareOptions Method Boolean op_Inequality(DiffBeacon.Core.CompareOptions, DiffBeacon.Core.CompareOptions)
+M DiffBeacon.Core.CompareOptions Method DiffBeacon.Core.CompareOptions <Clone>$()
+M DiffBeacon.Core.CompareOptions Method Int32 GetHashCode()
+M DiffBeacon.Core.CompareOptions Method System.String ToString()
+M DiffBeacon.Core.CompareOptions Method Void Deconstruct(Boolean ByRef, Boolean ByRef, Boolean ByRef)
+M DiffBeacon.Core.CompareOptions Method Void set_IgnoreBlankLines(Boolean)
+M DiffBeacon.Core.CompareOptions Method Void set_IgnoreCase(Boolean)
+M DiffBeacon.Core.CompareOptions Method Void set_IgnoreWhitespace(Boolean)
+M DiffBeacon.Core.CompareOptions Property Boolean IgnoreBlankLines
+M DiffBeacon.Core.CompareOptions Property Boolean IgnoreCase
+M DiffBeacon.Core.CompareOptions Property Boolean IgnoreWhitespace
+M DiffBeacon.Core.DelimitedText Method System.Collections.Generic.IReadOnlyList`1[System.String[]] Parse(System.String, Char)
+M DiffBeacon.Core.DiffRow Constructor Void .ctor(System.Nullable`1[System.Int32], System.Nullable`1[System.Int32], System.String, System.String, DiffBeacon.Core.Change)
+M DiffBeacon.Core.DiffRow Method Boolean Equals(DiffBeacon.Core.DiffRow)
+M DiffBeacon.Core.DiffRow Method Boolean Equals(System.Object)
+M DiffBeacon.Core.DiffRow Method Boolean op_Equality(DiffBeacon.Core.DiffRow, DiffBeacon.Core.DiffRow)
+M DiffBeacon.Core.DiffRow Method Boolean op_Inequality(DiffBeacon.Core.DiffRow, DiffBeacon.Core.DiffRow)
+M DiffBeacon.Core.DiffRow Method DiffBeacon.Core.Change get_Status()
+M DiffBeacon.Core.DiffRow Method DiffBeacon.Core.DiffRow <Clone>$()
+M DiffBeacon.Core.DiffRow Method Int32 GetHashCode()
+M DiffBeacon.Core.DiffRow Method System.Nullable`1[System.Int32] get_LeftLine()
+M DiffBeacon.Core.DiffRow Method System.Nullable`1[System.Int32] get_RightLine()
+M DiffBeacon.Core.DiffRow Method System.String get_Left()
+M DiffBeacon.Core.DiffRow Method System.String get_Right()
+M DiffBeacon.Core.DiffRow Method System.String ToString()
+M DiffBeacon.Core.DiffRow Method Void Deconstruct(System.Nullable`1[System.Int32] ByRef, System.Nullable`1[System.Int32] ByRef, System.String ByRef, System.String ByRef, DiffBeacon.Core.Change ByRef)
+M DiffBeacon.Core.DiffRow Method Void set_Left(System.String)
+M DiffBeacon.Core.DiffRow Method Void set_LeftLine(System.Nullable`1[System.Int32])
+M DiffBeacon.Core.DiffRow Method Void set_Right(System.String)
+M DiffBeacon.Core.DiffRow Method Void set_RightLine(System.Nullable`1[System.Int32])
+M DiffBeacon.Core.DiffRow Method Void set_Status(DiffBeacon.Core.Change)
+M DiffBeacon.Core.DiffRow Property DiffBeacon.Core.Change Status
+M DiffBeacon.Core.DiffRow Property System.Nullable`1[System.Int32] LeftLine
+M DiffBeacon.Core.DiffRow Property System.Nullable`1[System.Int32] RightLine
+M DiffBeacon.Core.DiffRow Property System.String Left
+M DiffBeacon.Core.DiffRow Property System.String Right
+M DiffBeacon.Core.FileStamp Constructor Void .ctor(Int64, System.DateTime, System.String)
+M DiffBeacon.Core.FileStamp Method Boolean Equals(DiffBeacon.Core.FileStamp)
+M DiffBeacon.Core.FileStamp Method Boolean Equals(System.Object)
+M DiffBeacon.Core.FileStamp Method Boolean Matches(System.String)
+M DiffBeacon.Core.FileStamp Method Boolean op_Equality(DiffBeacon.Core.FileStamp, DiffBeacon.Core.FileStamp)
+M DiffBeacon.Core.FileStamp Method Boolean op_Inequality(DiffBeacon.Core.FileStamp, DiffBeacon.Core.FileStamp)
+M DiffBeacon.Core.FileStamp Method DiffBeacon.Core.FileStamp <Clone>$()
+M DiffBeacon.Core.FileStamp Method DiffBeacon.Core.FileStamp Capture(System.String)
+M DiffBeacon.Core.FileStamp Method Int32 GetHashCode()
+M DiffBeacon.Core.FileStamp Method Int64 get_Length()
+M DiffBeacon.Core.FileStamp Method System.DateTime get_ModifiedUtc()
+M DiffBeacon.Core.FileStamp Method System.String get_Hash()
+M DiffBeacon.Core.FileStamp Method System.String ToString()
+M DiffBeacon.Core.FileStamp Method Void Deconstruct(Int64 ByRef, System.DateTime ByRef, System.String ByRef)
+M DiffBeacon.Core.FileStamp Method Void set_Hash(System.String)
+M DiffBeacon.Core.FileStamp Method Void set_Length(Int64)
+M DiffBeacon.Core.FileStamp Method Void set_ModifiedUtc(System.DateTime)
+M DiffBeacon.Core.FileStamp Property Int64 Length
+M DiffBeacon.Core.FileStamp Property System.DateTime ModifiedUtc
+M DiffBeacon.Core.FileStamp Property System.String Hash
+M DiffBeacon.Core.FolderComparison Field Int32 MaxFiles
+M DiffBeacon.Core.FolderComparison Field Int32 MaxVisitedEntries
+M DiffBeacon.Core.FolderComparison Method DiffBeacon.Core.FolderResult Compare(System.String, System.String, DiffBeacon.Core.FolderFilterOptions, System.Threading.CancellationToken)
+M DiffBeacon.Core.FolderComparison Method DiffBeacon.Core.FolderResult Compare(System.String, System.String, System.Threading.CancellationToken)
+M DiffBeacon.Core.FolderFilterOptions Method Boolean get_IsFiltered()
+M DiffBeacon.Core.FolderFilterOptions Method Boolean IncludesFile(System.String)
+M DiffBeacon.Core.FolderFilterOptions Method Boolean PrunesDirectory(System.String)
+M DiffBeacon.Core.FolderFilterOptions Method System.Collections.Immutable.ImmutableArray`1[System.String] get_Excludes()
+M DiffBeacon.Core.FolderFilterOptions Method System.Collections.Immutable.ImmutableArray`1[System.String] get_IgnoredDirectories()
+M DiffBeacon.Core.FolderFilterOptions Method System.Collections.Immutable.ImmutableArray`1[System.String] get_Includes()
+M DiffBeacon.Core.FolderFilterOptions Method System.String get_Description()
+M DiffBeacon.Core.FolderFilterOptions Method System.String get_FilterText()
+M DiffBeacon.Core.FolderFilterOptions Method System.String get_IgnoredDirectoriesText()
+M DiffBeacon.Core.FolderFilterOptions Property Boolean IsFiltered
+M DiffBeacon.Core.FolderFilterOptions Property System.Collections.Immutable.ImmutableArray`1[System.String] Excludes
+M DiffBeacon.Core.FolderFilterOptions Property System.Collections.Immutable.ImmutableArray`1[System.String] IgnoredDirectories
+M DiffBeacon.Core.FolderFilterOptions Property System.Collections.Immutable.ImmutableArray`1[System.String] Includes
+M DiffBeacon.Core.FolderFilterOptions Property System.String Description
+M DiffBeacon.Core.FolderFilterOptions Property System.String FilterText
+M DiffBeacon.Core.FolderFilterOptions Property System.String IgnoredDirectoriesText
+M DiffBeacon.Core.FolderFilters Method DiffBeacon.Core.FolderFilterOptions Parse(System.String, System.String)
+M DiffBeacon.Core.FolderResult Constructor Void .ctor(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.FolderRow], Boolean, DiffBeacon.Core.FolderFilterOptions, DiffBeacon.Core.FolderScanCounts, DiffBeacon.Core.FolderScanCounts, System.Collections.Generic.IReadOnlyList`1[System.String])
+M DiffBeacon.Core.FolderResult Method Boolean Equals(DiffBeacon.Core.FolderResult)
+M DiffBeacon.Core.FolderResult Method Boolean Equals(System.Object)
+M DiffBeacon.Core.FolderResult Method Boolean get_Complete()
+M DiffBeacon.Core.FolderResult Method Boolean op_Equality(DiffBeacon.Core.FolderResult, DiffBeacon.Core.FolderResult)
+M DiffBeacon.Core.FolderResult Method Boolean op_Inequality(DiffBeacon.Core.FolderResult, DiffBeacon.Core.FolderResult)
+M DiffBeacon.Core.FolderResult Method DiffBeacon.Core.FolderFilterOptions get_Filters()
+M DiffBeacon.Core.FolderResult Method DiffBeacon.Core.FolderResult <Clone>$()
+M DiffBeacon.Core.FolderResult Method DiffBeacon.Core.FolderScanCounts get_LeftCounts()
+M DiffBeacon.Core.FolderResult Method DiffBeacon.Core.FolderScanCounts get_RightCounts()
+M DiffBeacon.Core.FolderResult Method Int32 GetHashCode()
+M DiffBeacon.Core.FolderResult Method System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.FolderRow] get_Rows()
+M DiffBeacon.Core.FolderResult Method System.Collections.Generic.IReadOnlyList`1[System.String] get_IncompleteReasons()
+M DiffBeacon.Core.FolderResult Method System.String get_Summary()
+M DiffBeacon.Core.FolderResult Method System.String ToString()
+M DiffBeacon.Core.FolderResult Method Void Deconstruct(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.FolderRow] ByRef, Boolean ByRef, DiffBeacon.Core.FolderFilterOptions ByRef, DiffBeacon.Core.FolderScanCounts ByRef, DiffBeacon.Core.FolderScanCounts ByRef, System.Collections.Generic.IReadOnlyList`1[System.String] ByRef)
+M DiffBeacon.Core.FolderResult Method Void set_Complete(Boolean)
+M DiffBeacon.Core.FolderResult Method Void set_Filters(DiffBeacon.Core.FolderFilterOptions)
+M DiffBeacon.Core.FolderResult Method Void set_IncompleteReasons(System.Collections.Generic.IReadOnlyList`1[System.String])
+M DiffBeacon.Core.FolderResult Method Void set_LeftCounts(DiffBeacon.Core.FolderScanCounts)
+M DiffBeacon.Core.FolderResult Method Void set_RightCounts(DiffBeacon.Core.FolderScanCounts)
+M DiffBeacon.Core.FolderResult Method Void set_Rows(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.FolderRow])
+M DiffBeacon.Core.FolderResult Property Boolean Complete
+M DiffBeacon.Core.FolderResult Property DiffBeacon.Core.FolderFilterOptions Filters
+M DiffBeacon.Core.FolderResult Property DiffBeacon.Core.FolderScanCounts LeftCounts
+M DiffBeacon.Core.FolderResult Property DiffBeacon.Core.FolderScanCounts RightCounts
+M DiffBeacon.Core.FolderResult Property System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.FolderRow] Rows
+M DiffBeacon.Core.FolderResult Property System.Collections.Generic.IReadOnlyList`1[System.String] IncompleteReasons
+M DiffBeacon.Core.FolderResult Property System.String Summary
+M DiffBeacon.Core.FolderRow Constructor Void .ctor(System.String, DiffBeacon.Core.Change, System.Nullable`1[System.Int64], System.Nullable`1[System.Int64], System.String)
+M DiffBeacon.Core.FolderRow Method Boolean Equals(DiffBeacon.Core.FolderRow)
+M DiffBeacon.Core.FolderRow Method Boolean Equals(System.Object)
+M DiffBeacon.Core.FolderRow Method Boolean op_Equality(DiffBeacon.Core.FolderRow, DiffBeacon.Core.FolderRow)
+M DiffBeacon.Core.FolderRow Method Boolean op_Inequality(DiffBeacon.Core.FolderRow, DiffBeacon.Core.FolderRow)
+M DiffBeacon.Core.FolderRow Method DiffBeacon.Core.Change get_Status()
+M DiffBeacon.Core.FolderRow Method DiffBeacon.Core.FolderRow <Clone>$()
+M DiffBeacon.Core.FolderRow Method Int32 GetHashCode()
+M DiffBeacon.Core.FolderRow Method System.Nullable`1[System.Int64] get_LeftSize()
+M DiffBeacon.Core.FolderRow Method System.Nullable`1[System.Int64] get_RightSize()
+M DiffBeacon.Core.FolderRow Method System.String get_Detail()
+M DiffBeacon.Core.FolderRow Method System.String get_RelativePath()
+M DiffBeacon.Core.FolderRow Method System.String ToString()
+M DiffBeacon.Core.FolderRow Method Void Deconstruct(System.String ByRef, DiffBeacon.Core.Change ByRef, System.Nullable`1[System.Int64] ByRef, System.Nullable`1[System.Int64] ByRef, System.String ByRef)
+M DiffBeacon.Core.FolderRow Method Void set_Detail(System.String)
+M DiffBeacon.Core.FolderRow Method Void set_LeftSize(System.Nullable`1[System.Int64])
+M DiffBeacon.Core.FolderRow Method Void set_RelativePath(System.String)
+M DiffBeacon.Core.FolderRow Method Void set_RightSize(System.Nullable`1[System.Int64])
+M DiffBeacon.Core.FolderRow Method Void set_Status(DiffBeacon.Core.Change)
+M DiffBeacon.Core.FolderRow Property DiffBeacon.Core.Change Status
+M DiffBeacon.Core.FolderRow Property System.Nullable`1[System.Int64] LeftSize
+M DiffBeacon.Core.FolderRow Property System.Nullable`1[System.Int64] RightSize
+M DiffBeacon.Core.FolderRow Property System.String Detail
+M DiffBeacon.Core.FolderRow Property System.String RelativePath
+M DiffBeacon.Core.FolderScanCounts Constructor Void .ctor(Int64, Int64, Int64)
+M DiffBeacon.Core.FolderScanCounts Method Boolean Equals(DiffBeacon.Core.FolderScanCounts)
+M DiffBeacon.Core.FolderScanCounts Method Boolean Equals(System.Object)
+M DiffBeacon.Core.FolderScanCounts Method Boolean op_Equality(DiffBeacon.Core.FolderScanCounts, DiffBeacon.Core.FolderScanCounts)
+M DiffBeacon.Core.FolderScanCounts Method Boolean op_Inequality(DiffBeacon.Core.FolderScanCounts, DiffBeacon.Core.FolderScanCounts)
+M DiffBeacon.Core.FolderScanCounts Method DiffBeacon.Core.FolderScanCounts <Clone>$()
+M DiffBeacon.Core.FolderScanCounts Method Int32 GetHashCode()
+M DiffBeacon.Core.FolderScanCounts Method Int64 get_ExcludedFiles()
+M DiffBeacon.Core.FolderScanCounts Method Int64 get_PrunedDirectories()
+M DiffBeacon.Core.FolderScanCounts Method Int64 get_VisitedEntries()
+M DiffBeacon.Core.FolderScanCounts Method System.String ToString()
+M DiffBeacon.Core.FolderScanCounts Method Void Deconstruct(Int64 ByRef, Int64 ByRef, Int64 ByRef)
+M DiffBeacon.Core.FolderScanCounts Method Void set_ExcludedFiles(Int64)
+M DiffBeacon.Core.FolderScanCounts Method Void set_PrunedDirectories(Int64)
+M DiffBeacon.Core.FolderScanCounts Method Void set_VisitedEntries(Int64)
+M DiffBeacon.Core.FolderScanCounts Property Int64 ExcludedFiles
+M DiffBeacon.Core.FolderScanCounts Property Int64 PrunedDirectories
+M DiffBeacon.Core.FolderScanCounts Property Int64 VisitedEntries
+M DiffBeacon.Core.HighlightGranularity Field DiffBeacon.Core.HighlightGranularity Character
+M DiffBeacon.Core.HighlightGranularity Field DiffBeacon.Core.HighlightGranularity Line
+M DiffBeacon.Core.HighlightGranularity Field DiffBeacon.Core.HighlightGranularity Word
+M DiffBeacon.Core.HighlightGranularity Field Int32 value__
+M DiffBeacon.Core.InlineDifferences Method DiffBeacon.Core.InlineDiffResult Compare(DiffBeacon.Core.TextResult, DiffBeacon.Core.CompareOptions, DiffBeacon.Core.HighlightGranularity, System.Threading.CancellationToken, DiffBeacon.Core.InlineDiffLimits)
+M DiffBeacon.Core.InlineDiffLimits Constructor Void .ctor(Int32, Int64, Int64, Int32)
+M DiffBeacon.Core.InlineDiffLimits Method Boolean Equals(DiffBeacon.Core.InlineDiffLimits)
+M DiffBeacon.Core.InlineDiffLimits Method Boolean Equals(System.Object)
+M DiffBeacon.Core.InlineDiffLimits Method Boolean op_Equality(DiffBeacon.Core.InlineDiffLimits, DiffBeacon.Core.InlineDiffLimits)
+M DiffBeacon.Core.InlineDiffLimits Method Boolean op_Inequality(DiffBeacon.Core.InlineDiffLimits, DiffBeacon.Core.InlineDiffLimits)
+M DiffBeacon.Core.InlineDiffLimits Method DiffBeacon.Core.InlineDiffLimits <Clone>$()
+M DiffBeacon.Core.InlineDiffLimits Method Int32 get_MaxTokensPerPair()
+M DiffBeacon.Core.InlineDiffLimits Method Int32 get_MaxTotalSpans()
+M DiffBeacon.Core.InlineDiffLimits Method Int32 GetHashCode()
+M DiffBeacon.Core.InlineDiffLimits Method Int64 get_MaxCellsPerPair()
+M DiffBeacon.Core.InlineDiffLimits Method Int64 get_MaxTotalCells()
+M DiffBeacon.Core.InlineDiffLimits Method System.String ToString()
+M DiffBeacon.Core.InlineDiffLimits Method Void Deconstruct(Int32 ByRef, Int64 ByRef, Int64 ByRef, Int32 ByRef)
+M DiffBeacon.Core.InlineDiffLimits Method Void set_MaxCellsPerPair(Int64)
+M DiffBeacon.Core.InlineDiffLimits Method Void set_MaxTokensPerPair(Int32)
+M DiffBeacon.Core.InlineDiffLimits Method Void set_MaxTotalCells(Int64)
+M DiffBeacon.Core.InlineDiffLimits Method Void set_MaxTotalSpans(Int32)
+M DiffBeacon.Core.InlineDiffLimits Property Int32 MaxTokensPerPair
+M DiffBeacon.Core.InlineDiffLimits Property Int32 MaxTotalSpans
+M DiffBeacon.Core.InlineDiffLimits Property Int64 MaxCellsPerPair
+M DiffBeacon.Core.InlineDiffLimits Property Int64 MaxTotalCells
+M DiffBeacon.Core.InlineDiffResult Constructor Void .ctor(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.InlineLineDifference], Int32, Int64)
+M DiffBeacon.Core.InlineDiffResult Method Boolean Equals(DiffBeacon.Core.InlineDiffResult)
+M DiffBeacon.Core.InlineDiffResult Method Boolean Equals(System.Object)
+M DiffBeacon.Core.InlineDiffResult Method Boolean op_Equality(DiffBeacon.Core.InlineDiffResult, DiffBeacon.Core.InlineDiffResult)
+M DiffBeacon.Core.InlineDiffResult Method Boolean op_Inequality(DiffBeacon.Core.InlineDiffResult, DiffBeacon.Core.InlineDiffResult)
+M DiffBeacon.Core.InlineDiffResult Method DiffBeacon.Core.InlineDiffResult <Clone>$()
+M DiffBeacon.Core.InlineDiffResult Method Int32 get_FallbackLines()
+M DiffBeacon.Core.InlineDiffResult Method Int32 GetHashCode()
+M DiffBeacon.Core.InlineDiffResult Method Int64 get_CellsUsed()
+M DiffBeacon.Core.InlineDiffResult Method System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.InlineLineDifference] get_Rows()
+M DiffBeacon.Core.InlineDiffResult Method System.String ToString()
+M DiffBeacon.Core.InlineDiffResult Method Void Deconstruct(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.InlineLineDifference] ByRef, Int32 ByRef, Int64 ByRef)
+M DiffBeacon.Core.InlineDiffResult Method Void set_CellsUsed(Int64)
+M DiffBeacon.Core.InlineDiffResult Method Void set_FallbackLines(Int32)
+M DiffBeacon.Core.InlineDiffResult Method Void set_Rows(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.InlineLineDifference])
+M DiffBeacon.Core.InlineDiffResult Property Int32 FallbackLines
+M DiffBeacon.Core.InlineDiffResult Property Int64 CellsUsed
+M DiffBeacon.Core.InlineDiffResult Property System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.InlineLineDifference] Rows
+M DiffBeacon.Core.InlineLineDifference Constructor Void .ctor(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan], System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan], Boolean, System.String)
+M DiffBeacon.Core.InlineLineDifference Method Boolean Equals(DiffBeacon.Core.InlineLineDifference)
+M DiffBeacon.Core.InlineLineDifference Method Boolean Equals(System.Object)
+M DiffBeacon.Core.InlineLineDifference Method Boolean get_IsFallback()
+M DiffBeacon.Core.InlineLineDifference Method Boolean op_Equality(DiffBeacon.Core.InlineLineDifference, DiffBeacon.Core.InlineLineDifference)
+M DiffBeacon.Core.InlineLineDifference Method Boolean op_Inequality(DiffBeacon.Core.InlineLineDifference, DiffBeacon.Core.InlineLineDifference)
+M DiffBeacon.Core.InlineLineDifference Method DiffBeacon.Core.InlineLineDifference <Clone>$()
+M DiffBeacon.Core.InlineLineDifference Method Int32 GetHashCode()
+M DiffBeacon.Core.InlineLineDifference Method System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan] get_Left()
+M DiffBeacon.Core.InlineLineDifference Method System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan] get_Right()
+M DiffBeacon.Core.InlineLineDifference Method System.String get_FallbackReason()
+M DiffBeacon.Core.InlineLineDifference Method System.String ToString()
+M DiffBeacon.Core.InlineLineDifference Method Void Deconstruct(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan] ByRef, System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan] ByRef, Boolean ByRef, System.String ByRef)
+M DiffBeacon.Core.InlineLineDifference Method Void set_FallbackReason(System.String)
+M DiffBeacon.Core.InlineLineDifference Method Void set_IsFallback(Boolean)
+M DiffBeacon.Core.InlineLineDifference Method Void set_Left(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan])
+M DiffBeacon.Core.InlineLineDifference Method Void set_Right(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan])
+M DiffBeacon.Core.InlineLineDifference Property Boolean IsFallback
+M DiffBeacon.Core.InlineLineDifference Property System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan] Left
+M DiffBeacon.Core.InlineLineDifference Property System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.TextSpan] Right
+M DiffBeacon.Core.InlineLineDifference Property System.String FallbackReason
+M DiffBeacon.Core.MergeChoice Field DiffBeacon.Core.MergeChoice Both
+M DiffBeacon.Core.MergeChoice Field DiffBeacon.Core.MergeChoice Local
+M DiffBeacon.Core.MergeChoice Field DiffBeacon.Core.MergeChoice Remote
+M DiffBeacon.Core.MergeChoice Field Int32 value__
+M DiffBeacon.Core.MergeSegment Constructor Void .ctor(System.String, Int32, Int32, DiffBeacon.Core.MergeSegmentKind, System.Collections.Immutable.ImmutableArray`1[System.String], System.Collections.Immutable.ImmutableArray`1[System.String], System.Collections.Immutable.ImmutableArray`1[System.String], System.Collections.Immutable.ImmutableArray`1[System.String])
+M DiffBeacon.Core.MergeSegment Method Boolean Equals(DiffBeacon.Core.MergeSegment)
+M DiffBeacon.Core.MergeSegment Method Boolean Equals(System.Object)
+M DiffBeacon.Core.MergeSegment Method Boolean op_Equality(DiffBeacon.Core.MergeSegment, DiffBeacon.Core.MergeSegment)
+M DiffBeacon.Core.MergeSegment Method Boolean op_Inequality(DiffBeacon.Core.MergeSegment, DiffBeacon.Core.MergeSegment)
+M DiffBeacon.Core.MergeSegment Method DiffBeacon.Core.MergeSegment <Clone>$()
+M DiffBeacon.Core.MergeSegment Method DiffBeacon.Core.MergeSegmentKind get_Kind()
+M DiffBeacon.Core.MergeSegment Method Int32 get_BaseCount()
+M DiffBeacon.Core.MergeSegment Method Int32 get_BaseStart()
+M DiffBeacon.Core.MergeSegment Method Int32 GetHashCode()
+M DiffBeacon.Core.MergeSegment Method System.Collections.Immutable.ImmutableArray`1[System.String] get_BaseLines()
+M DiffBeacon.Core.MergeSegment Method System.Collections.Immutable.ImmutableArray`1[System.String] get_LocalLines()
+M DiffBeacon.Core.MergeSegment Method System.Collections.Immutable.ImmutableArray`1[System.String] get_MergedLines()
+M DiffBeacon.Core.MergeSegment Method System.Collections.Immutable.ImmutableArray`1[System.String] get_RemoteLines()
+M DiffBeacon.Core.MergeSegment Method System.String get_Id()
+M DiffBeacon.Core.MergeSegment Method System.String ToString()
+M DiffBeacon.Core.MergeSegment Method Void Deconstruct(System.String ByRef, Int32 ByRef, Int32 ByRef, DiffBeacon.Core.MergeSegmentKind ByRef, System.Collections.Immutable.ImmutableArray`1[System.String] ByRef, System.Collections.Immutable.ImmutableArray`1[System.String] ByRef, System.Collections.Immutable.ImmutableArray`1[System.String] ByRef, System.Collections.Immutable.ImmutableArray`1[System.String] ByRef)
+M DiffBeacon.Core.MergeSegment Method Void set_BaseCount(Int32)
+M DiffBeacon.Core.MergeSegment Method Void set_BaseLines(System.Collections.Immutable.ImmutableArray`1[System.String])
+M DiffBeacon.Core.MergeSegment Method Void set_BaseStart(Int32)
+M DiffBeacon.Core.MergeSegment Method Void set_Id(System.String)
+M DiffBeacon.Core.MergeSegment Method Void set_Kind(DiffBeacon.Core.MergeSegmentKind)
+M DiffBeacon.Core.MergeSegment Method Void set_LocalLines(System.Collections.Immutable.ImmutableArray`1[System.String])
+M DiffBeacon.Core.MergeSegment Method Void set_MergedLines(System.Collections.Immutable.ImmutableArray`1[System.String])
+M DiffBeacon.Core.MergeSegment Method Void set_RemoteLines(System.Collections.Immutable.ImmutableArray`1[System.String])
+M DiffBeacon.Core.MergeSegment Property DiffBeacon.Core.MergeSegmentKind Kind
+M DiffBeacon.Core.MergeSegment Property Int32 BaseCount
+M DiffBeacon.Core.MergeSegment Property Int32 BaseStart
+M DiffBeacon.Core.MergeSegment Property System.Collections.Immutable.ImmutableArray`1[System.String] BaseLines
+M DiffBeacon.Core.MergeSegment Property System.Collections.Immutable.ImmutableArray`1[System.String] LocalLines
+M DiffBeacon.Core.MergeSegment Property System.Collections.Immutable.ImmutableArray`1[System.String] MergedLines
+M DiffBeacon.Core.MergeSegment Property System.Collections.Immutable.ImmutableArray`1[System.String] RemoteLines
+M DiffBeacon.Core.MergeSegment Property System.String Id
+M DiffBeacon.Core.MergeSegmentKind Field DiffBeacon.Core.MergeSegmentKind Automatic
+M DiffBeacon.Core.MergeSegmentKind Field DiffBeacon.Core.MergeSegmentKind Conflict
+M DiffBeacon.Core.MergeSegmentKind Field DiffBeacon.Core.MergeSegmentKind Unchanged
+M DiffBeacon.Core.MergeSegmentKind Field Int32 value__
+M DiffBeacon.Core.Reports Method System.String Html(System.String, System.String, System.Collections.Generic.IEnumerable`1[System.Collections.Generic.IEnumerable`1[System.String]])
+M DiffBeacon.Core.SafeFiles Method Void RejectReparseAncestors(System.String)
+M DiffBeacon.Core.SafeFiles Method Void Write(System.String, Byte[], DiffBeacon.Core.FileStamp, Boolean)
+M DiffBeacon.Core.Session Constructor Void .ctor(Int32, System.String, System.String, System.String, System.String, DiffBeacon.Core.CompareOptions, System.String, System.String, DiffBeacon.Core.HighlightGranularity, Boolean, Boolean, System.String)
+M DiffBeacon.Core.Session Method Boolean Equals(DiffBeacon.Core.Session)
+M DiffBeacon.Core.Session Method Boolean Equals(System.Object)
+M DiffBeacon.Core.Session Method Boolean get_SyncScrolling()
+M DiffBeacon.Core.Session Method Boolean get_WordWrap()
+M DiffBeacon.Core.Session Method Boolean op_Equality(DiffBeacon.Core.Session, DiffBeacon.Core.Session)
+M DiffBeacon.Core.Session Method Boolean op_Inequality(DiffBeacon.Core.Session, DiffBeacon.Core.Session)
+M DiffBeacon.Core.Session Method DiffBeacon.Core.CompareOptions get_Options()
+M DiffBeacon.Core.Session Method DiffBeacon.Core.HighlightGranularity get_Granularity()
+M DiffBeacon.Core.Session Method DiffBeacon.Core.Session <Clone>$()
+M DiffBeacon.Core.Session Method DiffBeacon.Core.Session Load(System.String)
+M DiffBeacon.Core.Session Method Int32 get_Version()
+M DiffBeacon.Core.Session Method Int32 GetHashCode()
+M DiffBeacon.Core.Session Method System.String get_FileFilter()
+M DiffBeacon.Core.Session Method System.String get_IgnoredDirectories()
+M DiffBeacon.Core.Session Method System.String get_Left()
+M DiffBeacon.Core.Session Method System.String get_Mode()
+M DiffBeacon.Core.Session Method System.String get_Name()
+M DiffBeacon.Core.Session Method System.String get_Right()
+M DiffBeacon.Core.Session Method System.String get_TableSeparator()
+M DiffBeacon.Core.Session Method System.String ToString()
+M DiffBeacon.Core.Session Method Void Deconstruct(Int32 ByRef, System.String ByRef, System.String ByRef, System.String ByRef, System.String ByRef, DiffBeacon.Core.CompareOptions ByRef, System.String ByRef, System.String ByRef, DiffBeacon.Core.HighlightGranularity ByRef, Boolean ByRef, Boolean ByRef, System.String ByRef)
+M DiffBeacon.Core.Session Method Void Save(System.String)
+M DiffBeacon.Core.Session Method Void set_FileFilter(System.String)
+M DiffBeacon.Core.Session Method Void set_Granularity(DiffBeacon.Core.HighlightGranularity)
+M DiffBeacon.Core.Session Method Void set_IgnoredDirectories(System.String)
+M DiffBeacon.Core.Session Method Void set_Left(System.String)
+M DiffBeacon.Core.Session Method Void set_Mode(System.String)
+M DiffBeacon.Core.Session Method Void set_Name(System.String)
+M DiffBeacon.Core.Session Method Void set_Options(DiffBeacon.Core.CompareOptions)
+M DiffBeacon.Core.Session Method Void set_Right(System.String)
+M DiffBeacon.Core.Session Method Void set_SyncScrolling(Boolean)
+M DiffBeacon.Core.Session Method Void set_TableSeparator(System.String)
+M DiffBeacon.Core.Session Method Void set_Version(Int32)
+M DiffBeacon.Core.Session Method Void set_WordWrap(Boolean)
+M DiffBeacon.Core.Session Property Boolean SyncScrolling
+M DiffBeacon.Core.Session Property Boolean WordWrap
+M DiffBeacon.Core.Session Property DiffBeacon.Core.CompareOptions Options
+M DiffBeacon.Core.Session Property DiffBeacon.Core.HighlightGranularity Granularity
+M DiffBeacon.Core.Session Property Int32 Version
+M DiffBeacon.Core.Session Property System.String FileFilter
+M DiffBeacon.Core.Session Property System.String IgnoredDirectories
+M DiffBeacon.Core.Session Property System.String Left
+M DiffBeacon.Core.Session Property System.String Mode
+M DiffBeacon.Core.Session Property System.String Name
+M DiffBeacon.Core.Session Property System.String Right
+M DiffBeacon.Core.Session Property System.String TableSeparator
+M DiffBeacon.Core.TextComparison Field Int32 MaxCharacters
+M DiffBeacon.Core.TextComparison Field Int32 MaxLines
+M DiffBeacon.Core.TextComparison Method DiffBeacon.Core.TextResult Compare(System.String, System.String, DiffBeacon.Core.CompareOptions, System.Threading.CancellationToken, Int64)
+M DiffBeacon.Core.TextComparison Method System.String[] Lines(System.String)
+M DiffBeacon.Core.TextDocument Constructor Void .ctor(System.String, System.String, System.Text.Encoding, Byte[], DiffBeacon.Core.FileStamp)
+M DiffBeacon.Core.TextDocument Method Boolean Equals(DiffBeacon.Core.TextDocument)
+M DiffBeacon.Core.TextDocument Method Boolean Equals(System.Object)
+M DiffBeacon.Core.TextDocument Method Boolean op_Equality(DiffBeacon.Core.TextDocument, DiffBeacon.Core.TextDocument)
+M DiffBeacon.Core.TextDocument Method Boolean op_Inequality(DiffBeacon.Core.TextDocument, DiffBeacon.Core.TextDocument)
+M DiffBeacon.Core.TextDocument Method Byte[] Encode(System.String)
+M DiffBeacon.Core.TextDocument Method Byte[] get_Preamble()
+M DiffBeacon.Core.TextDocument Method DiffBeacon.Core.FileStamp get_Stamp()
+M DiffBeacon.Core.TextDocument Method DiffBeacon.Core.TextDocument <Clone>$()
+M DiffBeacon.Core.TextDocument Method DiffBeacon.Core.TextDocument Load(System.String)
+M DiffBeacon.Core.TextDocument Method Int32 GetHashCode()
+M DiffBeacon.Core.TextDocument Method System.String get_Path()
+M DiffBeacon.Core.TextDocument Method System.String get_Text()
+M DiffBeacon.Core.TextDocument Method System.String ToString()
+M DiffBeacon.Core.TextDocument Method System.Text.Encoding get_Encoding()
+M DiffBeacon.Core.TextDocument Method Void Deconstruct(System.String ByRef, System.String ByRef, System.Text.Encoding ByRef, Byte[] ByRef, DiffBeacon.Core.FileStamp ByRef)
+M DiffBeacon.Core.TextDocument Method Void SavePane(DiffBeacon.Core.TextDocument ByRef, Boolean ByRef, System.String, System.String, DiffBeacon.Core.TextDocument)
+M DiffBeacon.Core.TextDocument Method Void set_Encoding(System.Text.Encoding)
+M DiffBeacon.Core.TextDocument Method Void set_Path(System.String)
+M DiffBeacon.Core.TextDocument Method Void set_Preamble(Byte[])
+M DiffBeacon.Core.TextDocument Method Void set_Stamp(DiffBeacon.Core.FileStamp)
+M DiffBeacon.Core.TextDocument Method Void set_Text(System.String)
+M DiffBeacon.Core.TextDocument Property Byte[] Preamble
+M DiffBeacon.Core.TextDocument Property DiffBeacon.Core.FileStamp Stamp
+M DiffBeacon.Core.TextDocument Property System.String Path
+M DiffBeacon.Core.TextDocument Property System.String Text
+M DiffBeacon.Core.TextDocument Property System.Text.Encoding Encoding
+M DiffBeacon.Core.TextEditProposal Method System.String Replace(System.String, Int32, Int32, System.String, System.String)
+M DiffBeacon.Core.TextResult Constructor Void .ctor(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.DiffRow], Boolean)
+M DiffBeacon.Core.TextResult Method Boolean Equals(DiffBeacon.Core.TextResult)
+M DiffBeacon.Core.TextResult Method Boolean Equals(System.Object)
+M DiffBeacon.Core.TextResult Method Boolean get_PositionalFallback()
+M DiffBeacon.Core.TextResult Method Boolean op_Equality(DiffBeacon.Core.TextResult, DiffBeacon.Core.TextResult)
+M DiffBeacon.Core.TextResult Method Boolean op_Inequality(DiffBeacon.Core.TextResult, DiffBeacon.Core.TextResult)
+M DiffBeacon.Core.TextResult Method DiffBeacon.Core.TextResult <Clone>$()
+M DiffBeacon.Core.TextResult Method Int32 get_Differences()
+M DiffBeacon.Core.TextResult Method Int32 GetHashCode()
+M DiffBeacon.Core.TextResult Method System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.DiffRow] get_Rows()
+M DiffBeacon.Core.TextResult Method System.String get_Summary()
+M DiffBeacon.Core.TextResult Method System.String ToString()
+M DiffBeacon.Core.TextResult Method Void Deconstruct(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.DiffRow] ByRef, Boolean ByRef)
+M DiffBeacon.Core.TextResult Method Void set_PositionalFallback(Boolean)
+M DiffBeacon.Core.TextResult Method Void set_Rows(System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.DiffRow])
+M DiffBeacon.Core.TextResult Property Boolean PositionalFallback
+M DiffBeacon.Core.TextResult Property Int32 Differences
+M DiffBeacon.Core.TextResult Property System.Collections.Generic.IReadOnlyList`1[DiffBeacon.Core.DiffRow] Rows
+M DiffBeacon.Core.TextResult Property System.String Summary
+M DiffBeacon.Core.TextScrollMap Method DiffBeacon.Core.TextScrollMap Create(DiffBeacon.Core.TextResult, Int32, Int32)
+M DiffBeacon.Core.TextScrollMap Method Int32 MapLeftToRight(Int32)
+M DiffBeacon.Core.TextScrollMap Method Int32 MapRightToLeft(Int32)
+M DiffBeacon.Core.TextSpan Constructor Void .ctor(Int32, Int32)
+M DiffBeacon.Core.TextSpan Method Boolean Equals(DiffBeacon.Core.TextSpan)
+M DiffBeacon.Core.TextSpan Method Boolean Equals(System.Object)
+M DiffBeacon.Core.TextSpan Method Boolean op_Equality(DiffBeacon.Core.TextSpan, DiffBeacon.Core.TextSpan)
+M DiffBeacon.Core.TextSpan Method Boolean op_Inequality(DiffBeacon.Core.TextSpan, DiffBeacon.Core.TextSpan)
+M DiffBeacon.Core.TextSpan Method Int32 get_Length()
+M DiffBeacon.Core.TextSpan Method Int32 get_Start()
+M DiffBeacon.Core.TextSpan Method Int32 GetHashCode()
+M DiffBeacon.Core.TextSpan Method System.String ToString()
+M DiffBeacon.Core.TextSpan Method Void Deconstruct(Int32 ByRef, Int32 ByRef)
+M DiffBeacon.Core.TextSpan Method Void set_Length(Int32)
+M DiffBeacon.Core.TextSpan Method Void set_Start(Int32)
+M DiffBeacon.Core.TextSpan Property Int32 Length
+M DiffBeacon.Core.TextSpan Property Int32 Start
+M DiffBeacon.Core.ThreeWayMerge Method DiffBeacon.Core.ThreeWayResult Create(System.String, System.String, System.String, System.Threading.CancellationToken)
+M DiffBeacon.Core.ThreeWayMerge Method System.String Render(DiffBeacon.Core.ThreeWayResult, System.Collections.Generic.IReadOnlyDictionary`2[System.String,DiffBeacon.Core.MergeChoice], System.Threading.CancellationToken)
+M DiffBeacon.Core.ThreeWayResult Constructor Void .ctor(System.Collections.Immutable.ImmutableArray`1[DiffBeacon.Core.MergeSegment])
+M DiffBeacon.Core.ThreeWayResult Method Boolean Equals(DiffBeacon.Core.ThreeWayResult)
+M DiffBeacon.Core.ThreeWayResult Method Boolean Equals(System.Object)
+M DiffBeacon.Core.ThreeWayResult Method Boolean op_Equality(DiffBeacon.Core.ThreeWayResult, DiffBeacon.Core.ThreeWayResult)
+M DiffBeacon.Core.ThreeWayResult Method Boolean op_Inequality(DiffBeacon.Core.ThreeWayResult, DiffBeacon.Core.ThreeWayResult)
+M DiffBeacon.Core.ThreeWayResult Method DiffBeacon.Core.ThreeWayResult <Clone>$()
+M DiffBeacon.Core.ThreeWayResult Method Int32 get_ConflictCount()
+M DiffBeacon.Core.ThreeWayResult Method Int32 GetHashCode()
+M DiffBeacon.Core.ThreeWayResult Method System.Collections.Immutable.ImmutableArray`1[DiffBeacon.Core.MergeSegment] get_Segments()
+M DiffBeacon.Core.ThreeWayResult Method System.String Render(System.Collections.Generic.IReadOnlyDictionary`2[System.String,DiffBeacon.Core.MergeChoice], System.Threading.CancellationToken)
+M DiffBeacon.Core.ThreeWayResult Method System.String ToString()
+M DiffBeacon.Core.ThreeWayResult Method Void Deconstruct(System.Collections.Immutable.ImmutableArray`1[DiffBeacon.Core.MergeSegment] ByRef)
+M DiffBeacon.Core.ThreeWayResult Method Void set_Segments(System.Collections.Immutable.ImmutableArray`1[DiffBeacon.Core.MergeSegment])
+M DiffBeacon.Core.ThreeWayResult Property Int32 ConflictCount
+M DiffBeacon.Core.ThreeWayResult Property System.Collections.Immutable.ImmutableArray`1[DiffBeacon.Core.MergeSegment] Segments
+T DiffBeacon.Core.AlignedBlockMerge
+T DiffBeacon.Core.BinaryComparison
+T DiffBeacon.Core.BinaryResult
+T DiffBeacon.Core.BlockMergePlan
+T DiffBeacon.Core.ByteSample
+T DiffBeacon.Core.Change
+T DiffBeacon.Core.CompareOptions
+T DiffBeacon.Core.DelimitedText
+T DiffBeacon.Core.DiffRow
+T DiffBeacon.Core.FileStamp
+T DiffBeacon.Core.FolderComparison
+T DiffBeacon.Core.FolderFilterOptions
+T DiffBeacon.Core.FolderFilters
+T DiffBeacon.Core.FolderResult
+T DiffBeacon.Core.FolderRow
+T DiffBeacon.Core.FolderScanCounts
+T DiffBeacon.Core.HighlightGranularity
+T DiffBeacon.Core.InlineDifferences
+T DiffBeacon.Core.InlineDiffLimits
+T DiffBeacon.Core.InlineDiffResult
+T DiffBeacon.Core.InlineLineDifference
+T DiffBeacon.Core.MergeChoice
+T DiffBeacon.Core.MergeSegment
+T DiffBeacon.Core.MergeSegmentKind
+T DiffBeacon.Core.Reports
+T DiffBeacon.Core.SafeFiles
+T DiffBeacon.Core.Session
+T DiffBeacon.Core.TextComparison
+T DiffBeacon.Core.TextDocument
+T DiffBeacon.Core.TextEditProposal
+T DiffBeacon.Core.TextResult
+T DiffBeacon.Core.TextScrollMap
+T DiffBeacon.Core.TextSpan
+T DiffBeacon.Core.ThreeWayMerge
+T DiffBeacon.Core.ThreeWayResult

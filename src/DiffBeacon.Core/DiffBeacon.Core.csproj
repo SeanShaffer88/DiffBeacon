@@ -1,1 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../ModulePackage.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>DiffBeacon.Core</PackageId>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Description>DiffBeacon Core comparison capabilities for .NET.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../DiffBeacon.Text/DiffBeacon.Text.csproj" />
+    <ProjectReference Include="../DiffBeacon.Files/DiffBeacon.Files.csproj" />
+    <ProjectReference Include="../DiffBeacon.Formats/DiffBeacon.Formats.csproj" />
+    <ProjectReference Include="../DiffBeacon.Sessions/DiffBeacon.Sessions.csproj" />
+  </ItemGroup>
+</Project>

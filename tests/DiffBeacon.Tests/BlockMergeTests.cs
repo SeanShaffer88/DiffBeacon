@@ -1,0 +1,29 @@
+using DiffBeacon.Core;
+
+static class BlockMergeTests
+{
+    public static void Run(Action<string, Action> test)
+    {
+        static void Check(bool condition) { if (!condition) throw new Exception("Block merge assertion failed."); }
+        static void Throws<T>(Action action) where T : Exception { try { action(); } catch (T) { return; } throw new Exception("Expected " + typeof(T).Name); }
+        static BlockMergePlan Plan(string a, string b, int ordinal = 0, bool toRight = true) => AlignedBlockMerge.Plan(a, b, TextComparison.Compare(a, b, new()), new(), ordinal, toRight);
+        test("Block replacement groups full contiguous hunk", () => { string a = "keep\nA\nB\ntail", b = "keep\nx\ny\ntail"; var p = Plan(a, b, 1); Check(p.SourceStart == 1 && p.SourceCount == 2 && p.DestinationStart == 1 && p.DestinationCount == 2 && p.AlignedRowCount == 2); Check(AlignedBlockMerge.Apply(p, a, b) == a); });
+        test("Block selected difference ordinal skips equal rows", () => { string a = "same\nA\nsame2\nB\ntail", b = "same\nx\nsame2\ny\ntail"; var p = Plan(a, b, 1); Check(p.FirstAlignedRow == 3 && p.ProposedOutput == "same\nx\nsame2\nB\ntail"); });
+        test("Block insertion uses prior destination line", () => { var p = Plan("a\ninsert\nb", "a\nb"); Check(p.DestinationStart == 1 && p.DestinationCount == 0 && p.SourceCount == 1 && p.ProposedOutput == "a\ninsert\nb"); });
+        test("Block deletion when source span absent", () => { var p = Plan("a\nb", "a\nremove\nb"); Check(p.SourceCount == 0 && p.DestinationCount == 1 && p.ProposedOutput == "a\nb"); });
+        test("Block start end and reverse direction", () => { Check(Plan("first\na", "a").ProposedOutput == "first\na"); Check(Plan("a\nlast", "a").ProposedOutput == "a\nlast"); Check(Plan("a\nremove", "a", toRight: false).ProposedOutput == "a"); Check(Plan("a", "first\na", toRight: false).ProposedOutput == "first\na"); });
+        test("Block trailing newlines preserved exactly", () => { Check(Plan("a\n", "a").ProposedOutput == "a\n"); Check(Plan("a", "a\n").ProposedOutput == "a"); Check(Plan("a\n\n", "a\n").ProposedOutput == "a\n\n"); });
+        test("Block empty newline-only and whole file", () => { Check(Plan("", "\n").ProposedOutput == ""); Check(Plan("\n", "").ProposedOutput == "\n"); Check(Plan("", "content").ProposedOutput == ""); Check(Plan("content", "").ProposedOutput == "content"); });
+        test("Block canonical CRLF logical text", () => Check(Plan("a\r\nA\r\n", "a\r\nx\r\n").ProposedOutput == "a\nA\n"));
+        test("Block repeated lines preserve unrelated hunk", () => { string a = "repeat\nA\nrepeat\nB\nrepeat", b = "repeat\nx\nrepeat\ny\nrepeat"; Check(Plan(a, b, 1).ProposedOutput == "repeat\nx\nrepeat\nB\nrepeat"); });
+        test("Block Unicode raw whitespace preserved", () => Check(Plan("海\n  世界 🚀  \ntail", "海\nchanged\ntail").ProposedOutput == "海\n  世界 🚀  \ntail"));
+        test("Block strict options and fallback guards", () => { var result = TextComparison.Compare("a", "b", new()); foreach (var o in new[] { new CompareOptions(true), new CompareOptions(false, true), new CompareOptions(false, false, true) }) Throws<InvalidOperationException>(() => AlignedBlockMerge.Plan("a", "b", result, o, 0, true)); Throws<InvalidOperationException>(() => AlignedBlockMerge.Plan("a", "b", result with { PositionalFallback = true }, new(), 0, true)); string many = string.Join('\n', Enumerable.Range(0, 1500)); Throws<InvalidOperationException>(() => Plan(many, many + "x")); });
+        test("Block stale comparison and error rows rejected", () => { var result = TextComparison.Compare("a", "b", new()); Throws<InvalidOperationException>(() => AlignedBlockMerge.Plan("new", "b", result, new(), 0, true)); Throws<InvalidOperationException>(() => AlignedBlockMerge.Plan("a", "b", result with { Rows = new[] { new DiffRow(1, 1, "a", "b", Change.Error) } }, new(), 0, true)); });
+        test("Block stale apply rejects either editor mutation", () => { var p = Plan("a", "b"); Throws<InvalidOperationException>(() => AlignedBlockMerge.Apply(p, "a!", "b")); Throws<InvalidOperationException>(() => AlignedBlockMerge.Apply(p, "a", "b!")); Check(p.ProposedOutput == "a"); });
+        test("Block invalid and equal/noop selections rejected", () => { Throws<ArgumentOutOfRangeException>(() => Plan("a", "b", -1)); Throws<ArgumentOutOfRangeException>(() => Plan("a", "b", 1)); Throws<ArgumentOutOfRangeException>(() => Plan("same", "same")); Throws<ArgumentOutOfRangeException>(() => Plan("a\r\n", "a\n")); });
+        test("Block cancellation plan and apply", () => { var cancelled = new CancellationToken(true); var p = Plan("a", "b"); Throws<OperationCanceledException>(() => AlignedBlockMerge.Plan("a", "b", TextComparison.Compare("a", "b", new()), new(), 0, true, cancelled)); Throws<OperationCanceledException>(() => AlignedBlockMerge.Apply(p, "a", "b", cancelled)); });
+        test("Block combined output character budget", () => { string replacement = new('x', 1_900_000), unrelated = new('y', 300_000); string source = replacement + "\nanchor\n" + unrelated; Check(replacement.Length + "\nanchor".Length < TextComparison.MaxCharacters / 2); Throws<InvalidDataException>(() => Plan(source, "small\nanchor")); });
+        test("Block combined output logical-line budget", () => { string source = string.Join('\n', Enumerable.Repeat("line", 60_000)); Throws<InvalidDataException>(() => Plan(source, "small")); });
+        test("Block complementary hunks respect destination editor cap", () => { string shared = new('s', 800_000), sourceOnly = new('a', 600_000), destinationOnly = new('b', 600_000); string a = shared + "\n" + sourceOnly + "\nanchor", b = shared + "\nanchor\n" + destinationOnly; Check(a.Length + (long)b.Length < TextComparison.MaxCharacters && a.Length < TextComparison.MaxCharacters / 2 && b.Length < TextComparison.MaxCharacters / 2); Throws<InvalidDataException>(() => Plan(a, b)); });
+    }
+}

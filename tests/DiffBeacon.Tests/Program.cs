@@ -86,8 +86,17 @@ try
     Test("TSV Unicode and ragged rows", () => { var r = DelimitedText.Parse("海\tx\ny", '\t'); Check(r[0][0] == "海" && r[1].Length == 1); });
     Test("Malformed CSV rejected", () => { Throws<InvalidDataException>(() => DelimitedText.Parse("\"unclosed")); Throws<InvalidDataException>(() => DelimitedText.Parse("\"a\"junk,b")); Throws<InvalidDataException>(() => DelimitedText.Parse("a\"b,c")); });
     Test("Session metadata round trip", () => { string p = Path.Combine(root, "session.json"); var s = new Session(1, "Test", "Text", "left", "right", new(true)); s.Save(p); Check(Session.Load(p) == s); });
+    Test("Oversized session save preserves existing file", () => { string p = Write("oversized-session.json", "keep"); var s = new Session(3, new string('海', 12_000), "Text", "left", "right", new()); Throws<InvalidDataException>(() => s.Save(p)); Check(File.ReadAllText(p) == "keep"); Check(!Directory.GetFiles(root, "oversized-session.json.diffbeacon-backup-*").Any()); });
+    Test("Version 3 session round trip", () => { string p = Path.Combine(root, "session-v3.json"); var s = new Session(3, "海", "Text", "left", "right", new(), Granularity: HighlightGranularity.Character, SyncScrolling: false, WordWrap: true, TableSeparator: "\t"); s.Save(p); Check(Session.Load(p) == s); });
+    Test("Edit line rejection allocation bound", () => { string replacement = new('\n', 2_000_000); long before = GC.GetAllocatedBytesForCurrentThread(); Throws<InvalidDataException>(() => TextEditProposal.Replace("", 0, 0, replacement, "")); Check(GC.GetAllocatedBytesForCurrentThread() - before < 100_000, "Line rejection allocated more than 100 KB"); });
+    Test("Edit line budget merges CRLF across segments", () => { string other = new('\n', TextComparison.MaxLines - 3); Check(TextEditProposal.Replace("\rX", 1, 1, "\n", other) == "\r\n"); Check(TextEditProposal.Replace("X\n", 0, 1, "\r", other) == "\r\n"); Check(TextEditProposal.Replace("\rX\n", 1, 1, "", other) == "\r\n"); Throws<InvalidDataException>(() => TextEditProposal.Replace("\rX\n", 1, 1, "x", other)); Throws<InvalidDataException>(() => TextEditProposal.Replace("", 0, 0, "", new string('\n', TextComparison.MaxLines - 1))); });
     Test("Invalid sessions rejected", () => { Throws<System.Text.Json.JsonException>(() => Session.Load(Write("bad.json", "{"))); Throws<InvalidDataException>(() => Session.Load(Write("unsupported.json", "{\"Version\":2}"))); });
     Test("HTML escapes hostile content", () => { string html = Reports.Html("<script>", "a&b", new[] { new[] { "<img onerror='x'>" } }); Check(!html.Contains("<script>") && !html.Contains("<img") && html.Contains("&lt;img") && html.Contains("a&amp;b")); });
+    ModuleCompatibilityTests.Run(Test);
+    ThreeWayTests.Run(Test);
+    FolderFilterTests.Run(Test);
+    BlockMergeTests.Run(Test);
+    InlineDiffTests.Run(Test);
 }
 finally { Directory.Delete(root, true); }
 Console.WriteLine($"{passed} Passed, {failed} Failed"); return failed == 0 ? 0 : 1;

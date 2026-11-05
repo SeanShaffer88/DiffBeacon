@@ -20,6 +20,10 @@ jobs:
         run: |
           dotnet ./src/DiffBeacon.App/bin/Release/net10.0-windows/DiffBeacon.dll --smoke "$env:RUNNER_TEMP/DiffBeacon.png"
           if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DiffBeacon-NuGet-alpha
+          path: artifacts/packages/*.nupkg
       - name: Publish Portable Build
         shell: pwsh
         run: ./scripts/Publish.ps1

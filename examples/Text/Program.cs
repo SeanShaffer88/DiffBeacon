@@ -1,0 +1,10 @@
+using DiffBeacon.Core;
+var options = new CompareOptions();
+var aligned = TextComparison.Compare("a\nb", "a\nc", options);
+var inline = InlineDifferences.Compare(aligned, options, HighlightGranularity.Character);
+var block = AlignedBlockMerge.Plan("a\nb", "a\nc", aligned, options, 0, true);
+if (AlignedBlockMerge.Apply(block, "a\nb", "a\nc") != "a\nb" || inline.Rows.Count != aligned.Rows.Count) throw new Exception("Text example failed");
+var merge = ThreeWayMerge.Create("base", "local", "remote");
+var choices = merge.Segments.Where(s => s.Kind == MergeSegmentKind.Conflict).ToDictionary(s => s.Id, _ => MergeChoice.Local);
+if (merge.Render(choices) != "local") throw new Exception("Merge choice failed");
+Console.WriteLine(aligned.Summary);
