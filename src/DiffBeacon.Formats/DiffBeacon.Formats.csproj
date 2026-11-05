@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../ModulePackage.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>DiffBeacon.Formats</PackageId>
+    <Description>DiffBeacon Formats comparison capabilities for .NET.</Description>
+  </PropertyGroup>
+</Project>
+

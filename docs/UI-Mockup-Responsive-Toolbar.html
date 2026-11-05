@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>DiffBeacon · Responsive Commands</title>
+<style>
+body{margin:0;background:#141416;color:#eeeff4;font:14px 'Segoe UI',sans-serif}header{background:#111113;padding:14px}.bar{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px}button,select,input{font:inherit;color:inherit;background:#232327;border:1px solid #777680;padding:6px 9px}button:hover{background:#8f3247}label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}main{background:#1b1b1f;margin:10px;padding:20px;min-height:120px}.review{width:300px;background:#1b1b1f}h2{font-size:16px;margin:12px}
+</style>
+<header>DiffBeacon — Compare With Clarity</header>
+<div class="bar" id="tools"><select><option>Text</option><option>Folders</option><option>Binary</option><option>Tables</option></select></div>
+<div class="bar"><label><input type="checkbox">Ignore Case</label><label><input type="checkbox">Ignore Whitespace</label><label><input type="checkbox">Ignore Blank Lines</label><label><input type="checkbox">Word Wrap</label><label>Table Separator <input value="," size="1"></label></div>
+<div class="bar" id="actions"></div><main>Comparison workspace</main>
+<h2>Three-Way Merge</h2><div class="bar" id="three"></div>
+<section style="height:280px;display:flex;flex-direction:column;margin:10px;background:#1b1b1f">
+<div style="min-height:52px;flex:2;padding:4px">Base source · Local source · Remote source<br>Source text</div>
+<div style="height:6px;background:#777680;cursor:row-resize"></div>
+<div style="display:flex;flex:3;min-height:70px"><div style="width:200px;min-width:200px">Conflicts · Explicit Choices Required<br>1. Base Line 1 · Unresolved<br>2. Base Line 3 · Unresolved</div><div style="width:6px;background:#777680;cursor:col-resize"></div><div style="min-width:200px;flex:1">Merged Preview · Read-Only<br>UNRESOLVED CONFLICT 1<br>&lt;&lt;&lt;&lt;&lt;&lt;&lt; LOCAL</div></div>
+<div class="bar" id="review"></div>
+</section>
+<script>
+const groups={tools:['Compare','Cancel','Swap','New Snippets','Save Session…','Export HTML…'],actions:['Previous Difference','Next Difference','Selected → Right','Left ← Selected','Block → Right','Left ← Block','All → Right','Undo Merge','Save Left As…','Save Right As…'],three:['Compare','Cancel','Save Merged As…'],review:['Previous Conflict','Next Conflict','Accept Local','Accept Remote','Accept Both','Undo Choice']};
+for(const [id,labels] of Object.entries(groups))for(const text of labels){const button=document.createElement('button');button.textContent=text;document.getElementById(id).append(button)}
+</script>

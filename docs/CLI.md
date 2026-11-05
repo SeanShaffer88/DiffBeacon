@@ -12,6 +12,8 @@ DiffBeacon.exe --check left.bin right.bin
 
 `--check` compares entire files byte-for-byte using bounded buffers. Exit 0 means equal, 1 means different, and 2 means invalid input or an IO error. GUI mode exits 0 after normal closure; it is not an automated equality assertion. Missing/invalid arguments exit 2. Paths containing spaces must be quoted. Use `--smoke SCREENSHOT.png` only for automated regression/render verification.
 
+Folder filters are currently GUI/session options only. `--mode folder LEFT RIGHT` starts with blank filters; no command-line filter arguments are implemented.
+
 For Git difftool, replace the executable path below with your actual extracted location. Configuration is opt-in and the app never edits Git settings:
 
 ```powershell
@@ -20,4 +22,4 @@ git config --global difftool.diffbeacon.cmd '"C:/Tools/DiffBeacon/DiffBeacon.exe
 git difftool
 ```
 
-Git mergetool is **planned**. This build has two-way text editing but no base/local/remote conflict-resolution contract and must not be configured as an automatic mergetool. Git status, branch, blame and version-browser windows are also planned. HTML export currently uses the GUI; `--report` is not implemented.
+Git mergetool is **planned**. The GUI now supports explicit Base/Local/Remote review through **File → New Three-Way Merge**, but no CLI output/exit contract for Git merges exists yet. Do not configure this build as an automatic mergetool. Git status, branch, blame and version-browser windows are also planned. HTML export currently uses the two-way GUI; `--report` is not implemented.
