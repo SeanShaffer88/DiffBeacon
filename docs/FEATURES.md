@@ -1,6 +1,6 @@
 # Feature Matrix
 
-The product target is a complete local comparison and merge workflow replacement with zero mandatory paid software, subscriptions or metered APIs. This v0.2.0-beta.1 public beta remains incomplete; stable and full replacement readiness are outstanding. Status describes this build only. Implemented means present in this build; Partial gives a specific narrower implementation; Planned means absent; Deferred means outside current implementation pending an eligible zero-cost or local approach. No advanced feature is implied by a similar control.
+The product target is a complete local comparison and merge workflow replacement with zero mandatory paid software, subscriptions or metered APIs. This matrix describes v0.2.0-beta.2, a public beta. Implemented means present in this build. Partial gives a narrower implementation. Planned means absent. Deferred means outside the current implementation pending an eligible zero-cost or local approach.
 
 | Requested Capability | Status | Current Behavior / Remaining Work |
 |---|---|---|

@@ -1,4 +1,4 @@
-# Reusable modules (0.2.0-beta.1)
+# Reusable modules (0.2.0-beta.2)
 
 The application is a public beta for testing; stable and full replacement readiness remain outstanding. These five MIT packages target net10.0 and use only the .NET framework. All public types retain namespace `DiffBeacon.Core`.
 
@@ -16,7 +16,7 @@ Dependency graph: App → Core → {Text, Files, Formats, Sessions}; Sessions �
 
 Use SDK 10 and run `scripts/Build.ps1`. This runs the existing harness, four direct module examples, packs five libraries into `artifacts/packages`, inspects package contents/dependencies, then restores/builds/runs consumers against that local feed in a unique temporary directory with isolated build configuration, package cache and cleared package sources. No NuGet publication occurs.
 
-Add `<PackageReference Include="DiffBeacon.Text" Version="0.2.0-beta.1" />` to a net10.0 project, restore from the local feed, import `DiffBeacon.Core`, and call `TextComparison.Compare("before", "after", new CompareOptions())`. Select the package containing the required entry points. Use the Core package for an existing Core dependency.
+Add `<PackageReference Include="DiffBeacon.Text" Version="0.2.0-beta.2" />` to a net10.0 project, restore from the local feed, import `DiffBeacon.Core`, and call `TextComparison.Compare("before", "after", new CompareOptions())`. Select the package containing the required entry points. Use the Core package for an existing Core dependency.
 
 Run each example independently with `dotnet run --project examples/Text -c Release` (or Files, Formats, Sessions). Each references its selected module directly. Files and Sessions create unique temporary directories and remove their own files afterward. Files explicitly overwrites its fixture and verifies the backup before cleanup.
 
