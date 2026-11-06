@@ -60,6 +60,14 @@ public class DarkWindow : Form
         bitmap.Save(filename, System.Drawing.Imaging.ImageFormat.Png);
     }
     void ToggleMaximize() { if (MaximizeBox) WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
+    internal void CheckMaximizedClientBounds()
+    {
+        var clientScreen = RectangleToScreen(ClientRectangle);
+        var workArea = Screen.FromRectangle(Bounds).WorkingArea;
+        if (WindowState != FormWindowState.Maximized || !workArea.Contains(clientScreen) ||
+            clientScreen.Location != workArea.Location || captionBar.PointToScreen(Point.Empty) != clientScreen.Location)
+            throw new Exception($"Maximized client or caption is clipped: client {clientScreen}, work area {workArea}.");
+    }
     internal static Point DecodeScreenPoint(nint parameter) => new(unchecked((short)((long)parameter & 0xffff)), unchecked((short)(((long)parameter >> 16) & 0xffff)));
     internal static int FrameHitTest(Point screen, Rectangle bounds, int captionHeight, int margin, bool maximized, Rectangle minimizeBounds, Rectangle maximizeBounds, Rectangle closeBounds)
     {
@@ -260,8 +268,7 @@ public class DarkWindow : Form
         if (SendMessage(Handle, WmNcHitTest, 0, Pack(maxTop)) is >= HtLeft and <= HtBottomRight) throw new Exception("Maximized window retained resize edge.");
         maximize.PerformClick();
         var original = Bounds; maximize.PerformClick(); await Task.Delay(60); if (WindowState != FormWindowState.Maximized || maximize.AccessibleName != "Restore") throw new Exception("Caption maximize failed.");
-        var clientScreen = RectangleToScreen(ClientRectangle); var workArea = Screen.FromRectangle(Bounds).WorkingArea;
-        if (!workArea.Contains(clientScreen) || clientScreen.Location != workArea.Location || captionBar.PointToScreen(Point.Empty) != clientScreen.Location) throw new Exception("Maximized client or caption origin is clipped outside the work area.");
+        CheckMaximizedClientBounds();
         var captionBottom = captionText.PointToScreen(new(captionText.Width / 2, captionText.Height - 2));
         CheckHit(this, captionBottom, HtCaption); CheckHit(captionText, captionBottom, -1);
         maximize.PerformClick(); await Task.Delay(60); if (WindowState != FormWindowState.Normal || Bounds != original) throw new Exception("Caption restore bounds failed.");

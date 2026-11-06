@@ -15,11 +15,6 @@ jobs:
       - name: Build And Test
         shell: pwsh
         run: ./scripts/Build.ps1
-      - name: Native UI Regression Smoke
-        shell: pwsh
-        run: |
-          dotnet ./src/DiffBeacon.App/bin/Release/net10.0-windows/DiffBeacon.dll --smoke "$env:RUNNER_TEMP/DiffBeacon.png"
-          if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
       - uses: actions/upload-artifact@v4
         with:
           name: DiffBeacon-NuGet-beta
@@ -27,6 +22,18 @@ jobs:
       - name: Publish Portable Build
         shell: pwsh
         run: ./scripts/Publish.ps1
+      - name: Packaged Native UI Regression Smoke
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          $portable = Join-Path $env:RUNNER_TEMP 'DiffBeacon-portable-smoke'
+          Expand-Archive -LiteralPath './artifacts/DiffBeacon-Windows-x64.zip' -DestinationPath $portable
+          $screenshot = Join-Path $env:RUNNER_TEMP 'DiffBeacon.png'
+          $stdout = Join-Path $portable 'smoke.stdout.log'
+          $stderr = Join-Path $portable 'smoke.stderr.log'
+          $app = Start-Process -FilePath (Join-Path $portable 'DiffBeacon.exe') -ArgumentList '--smoke', ('"{0}"' -f $screenshot) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -Wait -PassThru
+          Get-Content -LiteralPath $stdout, $stderr
+          if ($app.ExitCode -ne 0) { throw "Packaged UI smoke failed with exit $($app.ExitCode)" }
       - uses: actions/upload-artifact@v4
         with:
           name: DiffBeacon-Windows-x64
