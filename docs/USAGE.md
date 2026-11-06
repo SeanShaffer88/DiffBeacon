@@ -1,6 +1,6 @@
 # Usage and limits
 
-Applies to v0.2.0-beta.1. [Project overview](../README.md) · [CLI and Git setup](CLI.md)
+Applies to v0.2.0-beta.2. [Project overview](../README.md) · [CLI and Git setup](CLI.md)
 
 ## Run
 

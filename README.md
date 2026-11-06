@@ -6,13 +6,13 @@ Compare text, folders, binary files and CSV locally, with explicit merge choices
 
 A native **C# / .NET 10 Windows Forms** app with VaporGrid Revision 5 styling and Dark as the default appearance. Free to run locally, with no mandatory paid software or services.
 
-**v0.2.0-beta.1 · First public beta for testing.** Feature completeness, stable readiness and full replacement readiness remain outstanding.
+**v0.2.0-beta.2 · Public beta for testing.** This release adds VaporGrid Revision 5, a keyboard command palette, and more responsive scrolling in large comparisons.
 
 ![Text comparison with side-by-side editors, aligned differences and the VaporGrid command deck](docs/screenshots/text-comparison.png)
 
 ## Download and run
 
-1. Open the [beta release](https://github.com/SeanShaffer88/DiffBeacon/releases/tag/v0.2.0-beta.1) and download the Windows x64 ZIP.
+1. Open the [beta release](https://github.com/SeanShaffer88/DiffBeacon/releases/tag/v0.2.0-beta.2) and download the Windows x64 ZIP.
 2. Install the **.NET 10 Desktop Runtime for Windows x64** if needed.
 3. Extract the entire ZIP, then run **DiffBeacon.exe** from the extracted directory.
 
@@ -52,7 +52,7 @@ See [usage and hard limits](docs/USAGE.md), [CLI and Git setup](docs/CLI.md), an
 
 Text editing and alignment have explicit size budgets. Folder and table modes are read-only. Large-file binary scans retain limited samples. Advanced document formats, folder synchronization and Git mergetool remain planned. Review [all limits and save behavior](docs/USAGE.md#limits) before working with important files.
 
-**Known issue** — toggling Word Wrap between typing and Undo can lose native typing undo history. Physical DPI/text scaling, live high contrast and full accessibility acceptance are incomplete. See [beta release notes](docs/releases/v0.2.0-beta.1.md) and [verification evidence](docs/VERIFICATION.md).
+Toggling Word Wrap between typing and Undo can lose native typing undo history. Physical DPI and text scaling, live high contrast, and full accessibility acceptance are still open. See the [beta release notes](docs/releases/v0.2.0-beta.2.md) and [verification evidence](docs/VERIFICATION.md).
 
 ## Build and modules
 
