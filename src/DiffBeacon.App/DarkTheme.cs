@@ -199,7 +199,7 @@ static class DarkTheme
     internal static void ApplyCore(Control control)
     {
         control.BackColor = control is RichTextBox ? Editor : control is TextBoxBase or ComboBox ? Surface : control is ListBox or Panel ? Surface : control is Button ? Raised : Window;
-        control.ForeColor = control is RichTextBox or ListBox ? SurfaceText : Text;
+        control.ForeColor = control is TextBoxBase or ComboBox or ListBox ? SurfaceText : Text;
         if (control is Label or CheckBox or RadioButton)
         {
             control.BackColor = Color.Transparent;
