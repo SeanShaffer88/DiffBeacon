@@ -13,7 +13,10 @@ public sealed class MainForm : DarkWindow
     readonly string? smoke;
     public MainForm(string mode, string left, string right, string? smokePath)
     {
-        smoke = smokePath; Text = "DiffBeacon — Compare With Clarity"; Width = 1260; Height = 850; MinimumSize = new(900, 620); Font = new("Segoe UI", 10); StartPosition = FormStartPosition.CenterScreen;
+        smoke = smokePath; Text = "DiffBeacon — Compare With Clarity"; MinimumSize = new(900, 620); Font = new("Segoe UI", 10); StartPosition = FormStartPosition.Manual;
+        var startupScreen = Screen.FromPoint(Cursor.Position);
+        var startupBounds = StartupRestoreBounds(startupScreen.WorkingArea, MinimumSize);
+        Bounds = startupBounds;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         var menu = new MenuStrip();
         var file = new ToolStripMenuItem("&File"); file.DropDownItems.Add("New Comparison", null, (_, _) => Add("Text", "", "")); file.DropDownItems.Add("New Three-Way Merge", null, (_, _) => AddThreeWay()); file.DropDownItems.Add("Open Session…", null, (_, _) => OpenSession()); file.DropDownItems.Add("Close Tab", null, (_, _) => CloseTab()); file.DropDownItems.Add("Exit", null, (_, _) => Close()); menu.Items.Add(file);
@@ -28,15 +31,24 @@ public sealed class MainForm : DarkWindow
             if (smoke == null) return;
             try
             {
+                var smallWorkArea = new Rectangle(-1024, 40, 1024, 720);
+                if (StartupRestoreBounds(smallWorkArea, new(900, 620)) != smallWorkArea ||
+                    StartupRestoreBounds(new(0, 0, 1920, 1040), new(900, 620)) != new Rectangle(330, 95, 1260, 850))
+                    throw new Exception("Startup restore bounds did not fit the small or large work-area fixture.");
                 CheckMaximizedClientBounds();
                 var initialView = (CompareView)tabs.SelectedTab!.Controls[0];
                 initialView.CommandBar.CheckInitialLayout();
                 CapturePreview(Path.ChangeExtension(smoke, ".startup-maximized.png"));
-                var restoredSize = RestoreBounds.Size;
+                if (Screen.FromHandle(Handle).DeviceName != startupScreen.DeviceName || RestoreBounds.Size != startupBounds.Size)
+                    throw new Exception($"Maximized startup changed the monitor or restore size: {RestoreBounds}, expected {startupBounds} on {startupScreen.DeviceName}.");
                 WindowState = FormWindowState.Normal;
                 if (WindowState != FormWindowState.Normal || FormBorderStyle != FormBorderStyle.Sizable ||
-                    Size != restoredSize || Width < MinimumSize.Width || Height < MinimumSize.Height)
-                    throw new Exception($"Maximized startup failed to restore the resizable window: {Size}, expected {restoredSize}, minimum {MinimumSize}.");
+                    Size != startupBounds.Size || Width < MinimumSize.Width || Height < MinimumSize.Height)
+                    throw new Exception($"Maximized startup failed to restore the resizable window: {Bounds}, expected {startupBounds}, minimum {MinimumSize}.");
+                if (startupScreen.WorkingArea.Width >= MinimumSize.Width && startupScreen.WorkingArea.Height >= MinimumSize.Height &&
+                    (!startupScreen.WorkingArea.Contains(Bounds) || !startupScreen.WorkingArea.Contains(RectangleToScreen(ClientRectangle))))
+                    throw new Exception($"Restored window or client is clipped by the work area: {Bounds}, work area {startupScreen.WorkingArea}.");
+                Console.WriteLine($"Startup restore: {Bounds}, work area {startupScreen.WorkingArea}.");
                 CapturePreview(Path.ChangeExtension(smoke, ".startup.png"));
                 initialView.CommandBar.CheckInitialLayout();
                 await SmokeChrome();
@@ -51,6 +63,13 @@ public sealed class MainForm : DarkWindow
             catch (Exception ex) { FailSmoke(ex); }
             Close();
         };
+    }
+    static Rectangle StartupRestoreBounds(Rectangle workArea, Size minimum)
+    {
+        int width = Math.Clamp(1260, minimum.Width, Math.Max(minimum.Width, workArea.Width));
+        int height = Math.Clamp(850, minimum.Height, Math.Max(minimum.Height, workArea.Height));
+        return new(workArea.Left + Math.Max(0, (workArea.Width - width) / 2),
+            workArea.Top + Math.Max(0, (workArea.Height - height) / 2), width, height);
     }
     void HostCommands()
     {
