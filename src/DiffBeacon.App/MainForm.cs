@@ -8,7 +8,7 @@ public sealed class MainForm : DarkWindow
     public bool SmokeFailed { get; private set; }
     internal bool IsSmoke => smoke != null;
     internal void FailSmoke(Exception ex) { Console.Error.WriteLine(ex); SmokeFailed = true; }
-    readonly TabControl tabs = new DarkTabs() { Dock = DockStyle.Fill };
+    readonly DarkTabs tabs = new() { Dock = DockStyle.Fill, WorkspaceTread = true };
     readonly Panel commandHost = new() { Dock = DockStyle.Top, Height = 136 };
     readonly string? smoke;
     Rectangle? firstRestoreBounds;
@@ -22,6 +22,10 @@ public sealed class MainForm : DarkWindow
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         var menu = new MenuStrip();
         var file = new ToolStripMenuItem("&File"); file.DropDownItems.Add("New Comparison", null, (_, _) => Add("Text", "", "")); file.DropDownItems.Add("New Three-Way Merge", null, (_, _) => AddThreeWay()); file.DropDownItems.Add("Open Session…", null, (_, _) => OpenSession()); file.DropDownItems.Add("Close Tab", null, (_, _) => CloseTab()); file.DropDownItems.Add("Exit", null, (_, _) => Close()); menu.Items.Add(file);
+        menu.Items.Add("&Commands (Ctrl+K)", null, (_, _) => ShowCommands());
+        var settings = new ToolStripMenuItem("&Settings");
+        settings.DropDownItems.Add("Appearance…", null, (_, _) => AppearanceDialog.ShowFor(this));
+        menu.Items.Add(settings);
         menu.Items.Add("About", null, (_, _) => DarkPrompt.Show(this, "DiffBeacon · Core Preview\nNative, local-first file comparison.\nSee docs/FEATURES.md for current limits.\nNo automatic network access or telemetry.", "About DiffBeacon"));
         WindowContent.Controls.Add(tabs); WindowContent.Controls.Add(commandHost); WindowContent.Controls.Add(menu);
         tabs.SelectedIndexChanged += (_, _) => HostCommands(); MainMenuStrip = menu;
@@ -55,9 +59,11 @@ public sealed class MainForm : DarkWindow
                 Console.WriteLine($"Startup restore: {Bounds}, work area {startupScreen.WorkingArea}.");
                 CapturePreview(Path.ChangeExtension(smoke, ".startup.png"));
                 initialView.CommandBar.CheckInitialLayout();
+                AppearanceDialog.RunSmoke(this, smoke);
                 await SmokeChrome();
                 DarkPrompt.Smoke(this, Path.ChangeExtension(smoke, ".prompt.png"));
                 SmokeSessionOwnership();
+                await SmokeCommandPalette(Path.ChangeExtension(smoke, ".commands.png"));
                 var view = (CompareView)tabs.SelectedTab!.Controls[0];
                 await view.RunSmoke(smoke);
                 var threeWay = AddThreeWay();
@@ -74,6 +80,48 @@ public sealed class MainForm : DarkWindow
         int height = Math.Clamp(850, minimum.Height, Math.Max(minimum.Height, workArea.Height));
         return new(workArea.Left + Math.Max(0, (workArea.Width - width) / 2),
             workArea.Top + Math.Max(0, (workArea.Height - height) / 2), width, height);
+    }
+    protected override bool ProcessCmdKey(ref Message message, Keys keyData)
+    {
+        if (keyData != (Keys.Control | Keys.K)) return base.ProcessCmdKey(ref message, keyData);
+        ShowCommands();
+        return true;
+    }
+    void ShowCommands(Action<CommandPalette>? smokeAction = null)
+    {
+        if (tabs.SelectedTab is not { } session) return;
+        IEnumerable<PaletteCommand> commands = session.Controls[0] switch
+        {
+            CompareView twoWay => twoWay.PaletteCommands(),
+            ThreeWayMergeView threeWay => threeWay.PaletteCommands(),
+            _ => []
+        };
+        Control? opener = ActiveControl;
+        while (opener is ContainerControl { ActiveControl: { } child }) opener = child;
+        using var palette = new CommandPalette(commands);
+        Exception? failure = null;
+        if (smokeAction != null)
+            palette.Shown += (_, _) => palette.BeginInvoke(() =>
+            {
+                try { smokeAction(palette); }
+                catch (Exception ex) { failure = ex; palette.Close(); }
+            });
+        var result = palette.ShowDialog(this);
+        if (opener?.CanFocus == true) opener.Focus();
+        if (failure != null) throw new InvalidOperationException("Command palette smoke failed.", failure);
+        if (result == DialogResult.OK && tabs.SelectedTab == session && palette.Chosen is { } command && command.IsAvailable())
+            command.Invoke();
+    }
+    async Task SmokeCommandPalette(string screenshot)
+    {
+        var view = (CompareView)tabs.SelectedTab!.Controls[0];
+        var opener = view.CommandBar.Descendants().OfType<Button>().First(button => button.Visible && button.Text == "Compare");
+        opener.Focus();
+        ShowCommands(palette => palette.CheckKeyboard(screenshot));
+        if (!opener.Focused) throw new Exception("Closing Commands did not restore opener focus.");
+        view.CheckPaletteSwap(() => ShowCommands(palette => palette.ChooseForSmoke("Swap")));
+        await view.CheckPaletteNavigation(() => ShowCommands(palette => palette.ChooseForSmoke("Next Difference")));
+        Console.WriteLine("Commands search, keyboard choice, enabled filtering, normal dispatch and focus return: passed.");
     }
     protected override void WndProc(ref Message message)
     {
@@ -162,7 +210,11 @@ sealed class CompareView : UserControl
     bool arranging;
     readonly DifferenceOverview scrubber = new();
     readonly Panel emptyState = new() { Dock = DockStyle.Fill, BackColor = DarkTheme.Window };
-    readonly Label status = new() { Dock = DockStyle.Bottom, Height = 38, Padding = new(12, 9, 0, 0), BackColor = DarkTheme.Caption, ForeColor = DarkTheme.Muted, AutoEllipsis = true };
+    readonly Label status = new() { Dock = DockStyle.Fill, Padding = new(12, 0, 0, 0), TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true, AccessibleName = "Comparison Status" };
+    readonly Panel statusBar = new() { Dock = DockStyle.Bottom, Height = 38 };
+    readonly Button statusDetails = new() { Text = "Status Details…", AutoSize = true, Dock = DockStyle.Right, Visible = false };
+    readonly List<TextBox> startupPaths = new(2);
+    readonly List<Button> navigationButtons = new(2);
     readonly CheckBox ignoreCase = new() { Text = "Ignore Case", AutoSize = true }, ignoreSpace = new() { Text = "Ignore Whitespace", AutoSize = true }, ignoreBlank = new() { Text = "Ignore Blank Lines", AutoSize = true }, wrap = new() { Text = "Word Wrap", AutoSize = true };
     readonly TextBox delimiter = new() { Text = ",", Width = 28 };
     readonly TextBox fileFilter = new() { Dock = DockStyle.Fill, MaxLength = 4096, PlaceholderText = "*.cs;NOT *.g.cs", AccessibleName = "File Filter" }, ignoredDirectories = new() { Dock = DockStyle.Fill, MaxLength = 4096, PlaceholderText = ".git;bin;obj", AccessibleName = "Ignore Directories" };
@@ -198,7 +250,7 @@ sealed class CompareView : UserControl
     public CompareView(string initialMode, string left, string right)
     {
         leftText.AccessibleName = "Left Text"; rightText.AccessibleName = "Right Text";
-        BackColor = DarkTheme.Window; ForeColor = DarkTheme.Text; mode.Items.AddRange(["Text", "Folders", "Binary", "Tables"]); mode.SelectedItem = initialMode; StyleButton(compare);
+        BackColor = DarkTheme.Window; ForeColor = DarkTheme.Text; mode.Items.AddRange(["Text", "Folders", "Binary", "Tables"]); mode.SelectedItem = initialMode; DarkTheme.PrimaryButton(compare);
         results.BackgroundColor = DarkTheme.Surface; results.GridColor = DarkTheme.DecorativeBorder; results.DefaultCellStyle.BackColor = DarkTheme.Surface; results.DefaultCellStyle.ForeColor = DarkTheme.Text; results.DefaultCellStyle.SelectionBackColor = Color.FromArgb(35, 118, 128); results.DefaultCellStyle.SelectionForeColor = Color.White; results.ColumnHeadersDefaultCellStyle.BackColor = DarkTheme.Raised; results.ColumnHeadersDefaultCellStyle.ForeColor = DarkTheme.Text; results.EnableHeadersVisualStyles = false;
         leftPath.Text = left; rightPath.Text = right;
         Panel PathHeader(string label, TextBox path)
@@ -210,11 +262,24 @@ sealed class CompareView : UserControl
             path.MinimumSize = Size.Empty;
             var browse = new Button { Text = "Browse…", Dock = DockStyle.Fill, Margin = new(4, 0, 0, 0) };
             StyleButton(browse); browse.Click += (_, _) => Browse(path);
-            header.Controls.Add(new Label { Text = label, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
+            var caption = new Label { Text = label, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+            path.AccessibleName = label + " File Path";
+            header.Controls.Add(caption, 0, 0);
             header.Controls.Add(path, 1, 0); header.Controls.Add(browse, 2, 0);
+            void FitHeader()
+            {
+                header.ColumnStyles[0].Width = Math.Max(header.LogicalToDeviceUnits(52), caption.PreferredSize.Width + caption.Margin.Horizontal);
+                header.ColumnStyles[2].Width = Math.Max(header.LogicalToDeviceUnits(90), browse.PreferredSize.Width + browse.Margin.Horizontal);
+                header.Height = Math.Max(header.LogicalToDeviceUnits(38), Math.Max(path.PreferredHeight + path.Margin.Vertical, browse.PreferredSize.Height) + header.Padding.Vertical);
+            }
+            header.FontChanged += (_, _) => FitHeader();
+            header.DpiChangedAfterParent += (_, _) => FitHeader();
+            FitHeader();
             return header;
         }
         leftHeader = PathHeader("Left", leftPath); rightHeader = PathHeader("Right", rightPath);
+        void FitSharedPaths() => sharedPaths.Height = leftHeader.Height + rightHeader.Height;
+        leftHeader.SizeChanged += (_, _) => FitSharedPaths(); rightHeader.SizeChanged += (_, _) => FitSharedPaths(); FitSharedPaths();
         var tools = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new(10, 4, 0, 0), WrapContents = true, AutoScroll = false }; tools.Controls.Add(mode); tools.Controls.Add(compare); compare.Click += async (_, _) => await Compare();
         tools.BackColor = BackColor; Button Tool(string title, Action action) { var button = new Button { Text = title, AutoSize = true }; StyleButton(button); button.Click += (_, _) => { try { action(); } catch (Exception ex) { Error(ex); } }; tools.Controls.Add(button); return button; }
         cancel = Tool("Cancel", () => cancellation?.Cancel()); cancel.Enabled = false; Tool("Swap", Swap); Tool("New Snippets", NewSnippets); Tool("Save Session…", SaveSession); Tool("Export HTML…", Export);
@@ -250,11 +315,26 @@ sealed class CompareView : UserControl
         void StartupTarget(string side, TextBox path, int column)
         {
             var target = new Button { Text = $"Open {side} File…\nOr Drop A File Here", Dock = DockStyle.Fill, AllowDrop = true, Margin = new(8) };
+            var value = new TextBox { Dock = DockStyle.Bottom, ReadOnly = true, AccessibleName = side + " Selected File Path", Visible = false };
+            startupPaths.Add(value);
             StyleButton(target); target.Click += (_, _) => Browse(path);
             target.DragEnter += (_, e) => { if (e.Data?.GetDataPresent(DataFormats.FileDrop) == true) e.Effect = DragDropEffects.Copy; };
             target.DragDrop += (_, e) => { if (e.Data?.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0) path.Text = files[0]; };
-            path.TextChanged += (_, _) => { target.Text = path.Text.Length == 0 ? $"Open {side} File…\nOr Drop A File Here" : $"{side}: {Path.GetFileName(path.Text)}\nChoose Another File…"; help.SetToolTip(target, path.Text); };
-            welcome.Controls.Add(target, column, 0);
+            void UpdateTarget()
+            {
+                bool selected = path.Text.Length != 0;
+                target.Text = selected ? $"Choose Another {side} File…" : $"Open {side} File…\nOr Drop A File Here";
+                value.Text = path.Text;
+                value.Visible = selected;
+                help.SetToolTip(target, path.Text);
+                help.SetToolTip(path, path.Text);
+            }
+            path.TextChanged += (_, _) => UpdateTarget();
+            UpdateTarget();
+            var targetPanel = new Panel { Dock = DockStyle.Fill, Margin = new(8) };
+            targetPanel.Controls.Add(target);
+            targetPanel.Controls.Add(value);
+            welcome.Controls.Add(targetPanel, column, 0);
         }
         StartupTarget("Left", leftPath, 0); StartupTarget("Right", rightPath, 1);
         var paste = new Button { Text = "Paste Snippets", AutoSize = true, Anchor = AnchorStyles.None };
@@ -263,6 +343,7 @@ sealed class CompareView : UserControl
         var workspaceHost = new Panel { Dock = DockStyle.Fill }; workspaceHost.Controls.Add(workspace); emptyState.Dock = DockStyle.Fill; workspaceHost.Controls.Add(emptyState); emptyState.BringToFront();
         var navigation = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, WrapContents = false, Padding = new(6, 0, 0, 0) };
         var navigationControls = actions.Controls.Cast<Control>().Take(2).ToArray();
+        navigationButtons.AddRange(navigationControls.OfType<Button>());
         navigation.Controls.AddRange(navigationControls);
         navigation.Controls.Add(showResults);
         var home = CommandBar.AddPage("Home");
@@ -280,7 +361,15 @@ sealed class CompareView : UserControl
         CommandBar.AddGroup(viewPage, "Differences", 200, new Label { Text = "Highlight", AutoSize = true }, granularity);
         CommandBar.AddGroup(viewPage, "Scrolling", 185, syncScrolling);
         tools.Dispose(); options.Dispose(); actions.Dispose();
-        Controls.Add(workspaceHost); Controls.Add(folderScope); Controls.Add(scrubber); Controls.Add(navigation); Controls.Add(folderFilters); Controls.Add(sharedPaths); Controls.Add(status);
+        StyleButton(statusDetails);
+        statusDetails.Click += (_, _) => DarkPrompt.Show(this, status.Text, "Comparison Status");
+        statusBar.Controls.Add(status);
+        statusBar.Controls.Add(statusDetails);
+        status.TextChanged += (_, _) => FitStatus();
+        status.FontChanged += (_, _) => FitStatus();
+        statusBar.SizeChanged += (_, _) => FitStatus();
+        Controls.Add(workspaceHost); Controls.Add(folderScope); Controls.Add(scrubber); Controls.Add(navigation); Controls.Add(folderFilters); Controls.Add(sharedPaths); Controls.Add(statusBar);
+        DarkTheme.WorkspaceBackground(welcome);
         stacked.CheckedChanged += (_, _) => SetEditorLayout(stacked.Checked);
         showResults.CheckedChanged += (_, _) => { workspace.Panel2Collapsed = !showResults.Checked && Mode == "Text"; ReflowSplits(); };
         editors.SizeChanged += (_, _) => ReflowSplits(); workspace.SizeChanged += (_, _) => ReflowSplits();
@@ -312,6 +401,43 @@ sealed class CompareView : UserControl
         results.CellDoubleClick += (_, e) => { if (Mode == "Folders" && folderResult != null && e.RowIndex >= 0) { string relative = Convert.ToString(results.Rows[e.RowIndex].Cells[1].Value) ?? ""; var row = folderResult.Rows.FirstOrDefault(r => r.RelativePath == relative); if (row != null && row.Status != Change.Error) { var l = Path.Combine(leftPath.Text, row.RelativePath); var r = Path.Combine(rightPath.Text, row.RelativePath); if (File.Exists(l) && File.Exists(r) && CanClose()) { leftPath.Text = l; rightPath.Text = r; leftDoc = rightDoc = null; mode.SelectedItem = "Text"; } } } };
         DarkTheme.Apply(this); DarkTheme.Apply(CommandBar); DarkTheme.Tooltip(help);
     }
+    void FitStatus()
+    {
+        statusBar.Height = Math.Max(LogicalToDeviceUnits(38), status.Font.Height + LogicalToDeviceUnits(10));
+        int width = TextRenderer.MeasureText(status.Text, status.Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix).Width;
+        statusDetails.Visible = width + status.Padding.Horizontal > statusBar.ClientSize.Width;
+        status.AccessibleDescription = status.Text;
+        help.SetToolTip(status, status.Text);
+    }
+    internal IEnumerable<PaletteCommand> PaletteCommands()
+    {
+        foreach (var command in CommandBar.PaletteCommands()) yield return command;
+        if (textResult is { Differences: > 0 })
+            foreach (var button in navigationButtons.Where(button => button.Visible))
+                yield return PaletteCommand.ForButton(button);
+    }
+    internal void CheckPaletteSwap(Action invoke)
+    {
+        SetTexts("left palette fixture", "right palette fixture");
+        invoke();
+        if (leftText.Text != "right palette fixture" || rightText.Text != "left palette fixture")
+            throw new Exception("The chosen command did not invoke the active view's Swap button.");
+        SetTexts("", "");
+        UpdateEmptyState();
+    }
+    internal async Task CheckPaletteNavigation(Action invoke)
+    {
+        SetTexts("common\nold", "common\nnew");
+        await Compare();
+        invoke();
+        if (differenceIndex != 0 || scrubber.SelectedIndex != 0)
+            throw new Exception("The chosen command did not navigate a real difference.");
+        SetTexts("", "");
+        InvalidateComparison();
+        UpdateEmptyState();
+        if (PaletteCommands().Any(command => command.Name == "Next Difference"))
+            throw new Exception("A stale result left Difference navigation in Commands.");
+    }
     int EditorAxis => (editors.Orientation == Orientation.Vertical ? editors.ClientSize.Width : editors.ClientSize.Height) - editors.SplitterWidth;
     void ReflowSplits()
     {
@@ -325,11 +451,17 @@ sealed class CompareView : UserControl
     }
     void FitWorkspace()
     {
-        int paneHeight = leftHeader.Height + 2 * leftText.Font.Height;
-        int editorHeight = editors.Orientation == Orientation.Horizontal ? paneHeight * 2 + editors.SplitterWidth : paneHeight;
-        int resultsHeight = results.ColumnHeadersHeight + results.RowTemplate.Height + 2 * SystemInformation.BorderSize.Height;
-        SetSplit(workspace, resultProportion, editorHeight, resultsHeight);
-        SetSplit(editors, editorProportion, editors.Orientation == Orientation.Horizontal ? paneHeight : 160, editors.Orientation == Orientation.Horizontal ? paneHeight : 160);
+        bool stack = editors.Orientation == Orientation.Horizontal;
+        int editorLine = Math.Max(leftText.Font.Height, rightText.Font.Height);
+        int header = Math.Max(leftHeader.Height, rightHeader.Height);
+        int paneHeight = header + 2 * editorLine;
+        int EditorHeight(int height) => stack ? height * 2 + editors.SplitterWidth : height;
+        int rowHeight = results.Rows.Count > 0 ? results.Rows[0].Height : results.RowTemplate.Height;
+        int resultsHeight = results.ColumnHeadersHeight + rowHeight + 2 * SystemInformation.BorderSize.Height;
+        if (!workspace.Panel2Collapsed && workspace.ClientSize.Height - workspace.SplitterWidth < EditorHeight(paneHeight) + resultsHeight)
+            paneHeight = header + editorLine;
+        SetSplit(workspace, resultProportion, EditorHeight(paneHeight), resultsHeight);
+        SetSplit(editors, editorProportion, stack ? paneHeight : 160, stack ? paneHeight : 160);
     }
     static void SetSplit(SplitContainer split, double proportion, int firstMinimum = 0, int secondMinimum = 0)
     {
@@ -356,16 +488,22 @@ sealed class CompareView : UserControl
     string Mode => (string)mode.SelectedItem!;
     internal void ApplyTheme()
     {
-        int leftStart = leftText.SelectionStart, leftLength = leftText.SelectionLength, rightStart = rightText.SelectionStart, rightLength = rightText.SelectionLength, selected = differenceIndex;
-        bool previous = suppress; suppress = true;
+        bool leftReady = leftText.IsHandleCreated, rightReady = rightText.IsHandleCreated;
+        var leftSelection = leftReady ? (leftText.SelectionStart, leftText.SelectionLength) : default;
+        var rightSelection = rightReady ? (rightText.SelectionStart, rightText.SelectionLength) : default;
+        var leftAnchor = leftReady ? leftText.CaptureViewport() : default;
+        var rightAnchor = rightReady ? rightText.CaptureViewport() : default;
+        bool previous = suppress, previousSyncing = syncing;
+        suppress = syncing = true;
         try
         {
             DarkTheme.ApplyCore(this); DarkTheme.ApplyCore(CommandBar); DarkTheme.Tooltip(help);
-            if (textResult != null) { ColorText(); if (selected >= 0) SetSelectedDifference(selected); }
-            leftText.Select(Math.Min(leftStart, leftText.TextLength), Math.Min(leftLength, Math.Max(0, leftText.TextLength - leftStart)));
-            rightText.Select(Math.Min(rightStart, rightText.TextLength), Math.Min(rightLength, Math.Max(0, rightText.TextLength - rightStart)));
+            statusBar.BackColor = DarkTheme.Caption; status.ForeColor = DarkTheme.Muted;
+            if (leftReady) { leftText.Select(leftSelection.SelectionStart, leftSelection.SelectionLength); leftText.RestoreViewport(leftAnchor); }
+            if (rightReady) { rightText.Select(rightSelection.SelectionStart, rightSelection.SelectionLength); rightText.RestoreViewport(rightAnchor); }
+            if (textResult != null) ColorText();
         }
-        finally { suppress = previous; }
+        finally { suppress = previous; syncing = previousSyncing; }
     }
     void UpdateEmptyState() => emptyState.Visible = Mode == "Text" && textResult == null && leftText.TextLength == 0 && rightText.TextLength == 0 && !leftText.Focused && !rightText.Focused;
     CompareOptions Options => new(ignoreCase.Checked, ignoreSpace.Checked, ignoreBlank.Checked);
@@ -687,6 +825,7 @@ sealed class CompareView : UserControl
     public async Task RunSmoke(string screenshot)
     {
         scrubber.SmokeGeometryAndPaint(screenshot);
+        CheckLongValues();
         await RunLayoutSmoke(screenshot);
         await RunGranularSmoke();
         SetTexts("// DiffBeacon · Compare With Clarity\npublic sealed class Beacon\n{\n    public string Name => \"Original\";\n    public int ReviewCount => 2;\n}\n", "// DiffBeacon · Compare With Clarity\npublic sealed class Beacon\n{\n    public string Name => \"Reviewed\";\n    public int ReviewCount => 3;\n    public bool Ready => true;\n}\n");
@@ -737,6 +876,18 @@ sealed class CompareView : UserControl
         await RunBlockMergeSmoke(Path.ChangeExtension(Path.GetFullPath(screenshot), ".block-merge.png"));
         await RunFolderSmoke(Path.ChangeExtension(Path.GetFullPath(screenshot), ".folders.png"));
     }
+    void CheckLongValues()
+    {
+        string path = Path.Combine(Path.GetTempPath(), new string('x', 100), "a fixture with spaces.txt");
+        leftPath.Text = path;
+        if (startupPaths[0].Text != path || !startupPaths[0].Visible || !startupPaths[0].ReadOnly)
+            throw new Exception("The full selected file path is unavailable on the startup surface.");
+        status.Text = "Error · Could not open " + new string('x', 400) + ". Check access and try again.";
+        if (!statusDetails.Visible || status.AccessibleDescription != status.Text ||
+            !statusBar.ClientRectangle.Contains(statusDetails.Bounds))
+            throw new Exception("The long status or its Details action was clipped.");
+        leftPath.Clear();
+    }
     internal void CheckHostedCommand()
     {
         SetTexts("left host fixture", "right host fixture");
@@ -756,6 +907,23 @@ sealed class CompareView : UserControl
         SetTexts(left, right); leftText.ClearUndo(); leftText.Select(leftText.TextLength, 0); leftText.SelectedText = " typed";
         string typed = leftText.Text; await Compare(); SetSelectedDifference(100);
         leftText.Select(7, 3); rightText.Select(9, 2);
+        leftText.Focus();
+        leftText.ScrollDisplayTo(180);
+        var leftBeforeTheme = leftText.CaptureViewport();
+        var rightBeforeTheme = rightText.CaptureViewport();
+        var appearance = VaporGridAppearance.Current;
+        try
+        {
+            VaporGridAppearance.Apply(appearance with { Theme = AppearanceTheme.Light, Accent = AppearanceAccent.Blue });
+            await ColorTextAsync();
+            if (leftText.Text != typed || rightText.Text != right || !leftText.Focused || !leftText.CanUndo ||
+                leftText.SelectionStart != 7 || leftText.SelectionLength != 3 || rightText.SelectionStart != 9 || rightText.SelectionLength != 2 ||
+                leftText.CaptureViewport() != leftBeforeTheme || rightText.CaptureViewport() != rightBeforeTheme ||
+                differenceIndex != 100 || scrubber.SelectedIndex != 100)
+                throw new Exception("Changing appearance altered the live editor state or selected difference.");
+        }
+        finally { VaporGridAppearance.Apply(appearance); }
+        await ColorTextAsync();
         var map = scrollMap; long generation = detailGeneration; int selected = differenceIndex;
         bool leftDirty = dirtyLeft, rightDirty = dirtyRight; int history = undo.Count;
         foreach (bool wrapped in new[] { false, true })
@@ -813,6 +981,39 @@ sealed class CompareView : UserControl
                     throw new Exception($"Results shows no complete row: width={width}, stacked={stack}, grid height={results.Height}, workspace={workspace.Height}, split={workspace.SplitterDistance}/{workspace.SplitterWidth}, header={leftHeader.Height}, font={leftText.Font.Height}, results header/row={results.ColumnHeadersHeight}/{results.RowTemplate.Height}.");
                 if (width == 1260) form.CapturePreview(Path.ChangeExtension(screenshot, stack ? ".stacked.png" : ".side-by-side.png"));
             }
+        }
+        var baseFont = form.Font;
+        foreach (var (scale, size) in new[] { (1.25f, new Size(900, 620)), (1.5f, new Size(1100, 700)) })
+        {
+            var workArea = Screen.FromControl(form).WorkingArea;
+            if (size.Width > workArea.Width || size.Height > workArea.Height)
+            {
+                Console.WriteLine($"Enlarged text {scale:P0} at {size} requires a larger work area than {workArea.Size}.");
+                continue;
+            }
+            form.Size = size;
+            using var enlarged = new Font(baseFont.FontFamily, baseFont.SizeInPoints * scale);
+            try
+            {
+                form.Font = enlarged;
+                await Task.Delay(20);
+                foreach (bool stack in new[] { false, true })
+                {
+                    stacked.Checked = stack;
+                    CommandBar.VisitPages(() =>
+                    {
+                        CommandBar.CheckBounds();
+                        if (leftText.Height < leftText.Font.Height || rightText.Height < rightText.Font.Height ||
+                            results.DisplayedRowCount(includePartialRow: false) == 0)
+                        {
+                            form.CapturePreview(Path.ChangeExtension(screenshot, ".enlarged-layout-failure.png"));
+                            throw new Exception($"Enlarged text hid an editor or a complete result row at {scale:P0}, {CommandBar.ActivePageName}, stacked={stack}. Deck {CommandBar.Height}; workspace {workspace.Height}; editors {leftText.Height}/{rightText.Height}; grid {results.Height}; row {results.Rows[0].Height}, header {results.ColumnHeadersHeight}.");
+                        }
+                    });
+                }
+                Console.WriteLine($"Enlarged text fit: {scale:P0} at {size}, both editor orientations and all command pages.");
+            }
+            finally { form.Font = baseFont; }
         }
         SetTexts(left, right); var pending = Compare(); stacked.Checked = !stacked.Checked;
         CommandBar.VisitPages(() => { if (cancel.Visible) cancel.PerformClick(); }); await pending;

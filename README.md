@@ -4,7 +4,7 @@
 
 Compare text, folders, binary files and CSV locally, with explicit merge choices and safe saves.
 
-A native **C# / .NET 10 Windows Forms** app with a VaporGrid dark interface. Free to run locally, with no mandatory paid software or services.
+A native **C# / .NET 10 Windows Forms** app with VaporGrid Revision 5 styling and Dark as the default appearance. Free to run locally, with no mandatory paid software or services.
 
 **v0.2.0-beta.1 · First public beta for testing.** Feature completeness, stable readiness and full replacement readiness remain outstanding.
 

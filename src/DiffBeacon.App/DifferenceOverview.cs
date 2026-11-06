@@ -93,12 +93,16 @@ sealed class DifferenceOverview : Control
         if (selectedIndex >= 0)
         {
             int x = XForRow(markers[selectedIndex].Row);
-            using var selected = new Pen(DarkTheme.Focus, Scale(2));
+            using var selected = new Pen(DarkTheme.SelectionIndicator, Scale(2));
             e.Graphics.DrawRectangle(selected, x - Scale(4), MarkerTop - Scale(3), Scale(8), MarkerHeight + Scale(6));
         }
         string label = markers.Length == 0 ? "Difference Overview · Compare Text To Show Markers" : $"Difference Overview · {markers.Length:N0} Markers · {(selectedIndex >= 0 ? $"Selected {selectedIndex + 1}: {markers[selectedIndex].Status}" : "Click Or Use Arrow Keys")}";
         TextRenderer.DrawText(e.Graphics, label, Font, CaptionBounds, DarkTheme.HighContrast ? SystemColors.WindowText : ForeColor, TextFormatFlags.SingleLine | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
-        if (Focused) ControlPaint.DrawFocusRectangle(e.Graphics, new Rectangle(Scale(1), Scale(1), Math.Max(0, Width - Scale(3)), Math.Max(0, Height - Scale(3))), SystemColors.Highlight, background);
+        if (Focused && Width > Scale(8) && Height > Scale(8))
+        {
+            using var focus = new Pen(DarkTheme.Focus, Scale(3));
+            e.Graphics.DrawRectangle(focus, new Rectangle(Scale(4), Scale(4), Width - Scale(8), Height - Scale(8)));
+        }
     }
     internal void SmokeGeometryAndPaint(string screenshot)
     {

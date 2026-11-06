@@ -2,6 +2,10 @@
 
 Design source: **VaporGrid**, by **Sean Shaffer**, licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
 
+Current source revision is [`729fe1ef4492f16e4f94c6198135fad5b6ba8385`](https://github.com/SeanShaffer88/VaporGrid/tree/729fe1ef4492f16e4f94c6198135fad5b6ba8385). The native adapter derives its palette, independent appearance presets, square tread, compact fit, and keyboard command behavior from that revision's `docs/tokens.json`, `docs/materials.md`, `docs/design-guidelines.md`, and `docs/workflow-recipes.md`. DiffBeacon adapts these to WinForms and RichEdit.
+
+## Revision 3 history
+
 Source revision: `46710312163f4b2ca0fba568eb612f2c8149bf5a` (supplied local authority).
 Local source: `C:/Users/Sean Shaffer/Documents/Codex/2026-11-04/ru/outputs/VaporGrid`.
 Consulted source documents: `docs/materials.md`, `docs/tokens.json`, and `docs/design-guidelines.md`.

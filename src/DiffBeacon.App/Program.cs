@@ -38,7 +38,12 @@ internal static class Program
             else if (args.Length == 2) { left = args[0]; right = args[1]; mode = Directory.Exists(left) && Directory.Exists(right) ? "Folders" : "Text"; }
             else if (args.Length == 4 && args[0] == "--mode") { mode = args[1] switch { "text" => "Text", "folder" => "Folders", "binary" => "Binary", "table" => "Tables", _ => throw new ArgumentException("Unknown mode.") }; left = args[2]; right = args[3]; }
             else if (args.Length != 0) throw new ArgumentException("Invalid arguments. Use --help.");
-            ApplicationConfiguration.Initialize(); Application.SetColorMode(SystemColorMode.Dark); using var form = new MainForm(mode, left, right, smoke); Application.Run(form); return form.SmokeFailed ? 2 : 0;
+            VaporGridAppearance.Initialize(usePortablePreferences: smoke == null);
+            ApplicationConfiguration.Initialize();
+            Application.SetColorMode(VaporGridAppearance.IsLight ? SystemColorMode.Classic : SystemColorMode.Dark);
+            using var form = new MainForm(mode, left, right, smoke);
+            Application.Run(form);
+            return form.SmokeFailed ? 2 : 0;
         }
         catch (Exception ex) { if (!UsesCliConsole(args) && !(args.Length > 0 && args[0] == "--smoke")) AttachCliConsole(); Console.Error.WriteLine(ex); return 2; }
     }

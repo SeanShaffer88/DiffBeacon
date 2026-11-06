@@ -1,4 +1,12 @@
-# VaporGrid revision 3 native adaptation
+# VaporGrid Revision 5 native adaptation
+
+The design source is [VaporGrid Revision 5](https://github.com/SeanShaffer88/VaporGrid/tree/729fe1ef4492f16e4f94c6198135fad5b6ba8385). DiffBeacon maps its sRGB colors and material guidance to native WinForms controls. The neutral Compare action, separate selection and focus cues, and opaque comparison panes keep attention on the two files. The optional square tread is confined to exposed dark workspace surfaces.
+
+Dark remains the default. **Settings → Appearance** offers System, Light, and Dark, independently of the Crimson, Blue, and Teal accent presets. Display settings are stored beside the portable application in `data/appearance.json` after a user changes them. Windows high contrast uses system colors and a flat workspace.
+
+**Commands** or **Ctrl+K** opens the keyboard command palette for the current session. The comparison editors retain native document scrolling, and the results pane scrolls through the bounded result set. These are data surfaces inside a fitted task layout. See [verification](VERIFICATION.md) for package checks and the tested display envelope.
+
+## Revision 3 history
 
 DiffBeacon uses native WinForms controls, RichEdit editing, keyboard handling, safe prompt defaults, and its real lighthouse application icon. No framework or dependency is introduced. The visual reference is VaporGrid revision 3 at `46710312163f4b2ca0fba568eb612f2c8149bf5a`.
 

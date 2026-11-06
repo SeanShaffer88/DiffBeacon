@@ -1,5 +1,11 @@
 # Local Verification
 
+## VaporGrid Revision 5 — 2026-11-05
+
+The native smoke checks the appearance controls and portable settings recovery, the command palette's filtering and focus return, and a live Light/Blue transition that preserves the active comparison, editor selection, typing undo, and viewport anchors. It checks the command pages and both editor orientations at 900×620 with standard and 125% test fonts, and at 1100×700 with a 150% test font. At 150% the smaller 900×620 window does not leave enough room for the complete workspace. Physical mixed-DPI displays, OS theme switching, and screen-reader behavior remain separate checks.
+
+The extracted package gate checks maximized startup and normal restore, complete results rows, and the existing 2,000-result-row fixture. The fixture verifies immediate viewport mapping in both directions across an insertion, amber formatting on changed words in both panes, normal formatting on the unchanged prefixes, and skipping a superseded viewport.
+
 ## Maximized startup and large comparison scrolling — 2026-11-05
 
 The main window opens maximized, restores to a resizable window, and keeps a complete results row visible when space permits. Extracted Windows x64 package smoke checked the startup client against the monitor work area, restore, caption hit targets, and both editor orientations at 900, 1140, and 1260 px widths with a 620 px height. It checked native text fit for the pane header controls and the full displayed results row. Physical mixed-DPI and smaller work areas remain unverified.

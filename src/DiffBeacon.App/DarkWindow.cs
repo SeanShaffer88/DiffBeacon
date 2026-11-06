@@ -14,6 +14,7 @@ public class DarkWindow : Form
     readonly Dictionary<Control, ChildHitRouter> hitRouters = new();
     bool maxPressed;
     bool captionPressed;
+    bool systemAppearanceQueued;
     Point captionPress;
     Rectangle pressedCaption;
     Size normalSize;
@@ -33,13 +34,32 @@ public class DarkWindow : Form
         ScaleCaption(); ApplyChrome(); WatchChildren(this);
     }
     protected override void OnLoad(EventArgs e) { base.OnLoad(e); minimize.Visible = MinimizeBox; maximize.Visible = MaximizeBox; UpdateCaptionState(); RefreshCaptionIcon(); ApplyChrome(); }
-    protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); int dark = DarkTheme.HighContrast ? 0 : 1; try { _ = DwmSetWindowAttribute(Handle, DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int)); } catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { /* App-drawn chrome remains available without DWM. */ } }
+    protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); ApplyNativeChrome(); }
     protected override void OnDpiChanged(DpiChangedEventArgs e) { base.OnDpiChanged(e); ScaleCaption(); RefreshCaptionIcon(); }
-    protected override void OnSystemColorsChanged(EventArgs e) { base.OnSystemColorsChanged(e); if (captionBar != null) ApplyChrome(); }
+    protected override void OnSystemColorsChanged(EventArgs e)
+    {
+        base.OnSystemColorsChanged(e);
+        if (captionBar != null && !Disposing && !IsDisposed) ApplyChrome();
+    }
+
+    internal static void RefreshAppearance()
+    {
+        foreach (var window in Application.OpenForms.OfType<DarkWindow>().ToArray())
+            if (!window.Disposing && !window.IsDisposed) window.ApplyChrome();
+    }
+
+    void ApplyNativeChrome()
+    {
+        if (!IsHandleCreated) return;
+        int dark = DarkTheme.HighContrast || VaporGridAppearance.IsLight ? 0 : 1;
+        try { _ = DwmSetWindowAttribute(Handle, DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int)); }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { /* App-drawn chrome remains available without DWM. */ }
+    }
     void ScaleCaption() { int height = LogicalToDeviceUnits(46); captionBar.Height = height; captionIcon.Width = LogicalToDeviceUnits(42); foreach (var button in new[] { minimize, maximize, close }) { button.Width = LogicalToDeviceUnits(46); button.TabStop = true; button.Font = Font; } }
     void RefreshCaptionIcon() { iconBitmap?.Dispose(); iconBitmap = Icon?.ToBitmap(); captionIcon.Image = iconBitmap; }
     protected void ApplyChrome()
     {
+        ApplyNativeChrome();
         DarkTheme.Apply(this); captionBar.BackColor = captionText.BackColor = captionIcon.BackColor = DarkTheme.Caption;
         foreach (var button in new[] { minimize, maximize, close }) { DarkTheme.CaptionButton(button); button.BackColor = DarkTheme.Caption; button.FlatAppearance.BorderSize = 0; button.FlatAppearance.MouseOverBackColor = DarkTheme.ChromeSelection; }
         close.FlatAppearance.MouseOverBackColor = DarkTheme.AccentHover;
@@ -197,6 +217,18 @@ public class DarkWindow : Form
         // Form updates WindowState here even if maximized and restored client
         // dimensions match, in which case Control.OnResize need not run.
         if (m.Msg == WmWindowPosChanged) UpdateCaptionState();
+        if (m.Msg == 0x001A && IsHandleCreated && !Disposing && !systemAppearanceQueued &&
+            VaporGridAppearance.Current.Theme == AppearanceTheme.System)
+        {
+            // WM_SETTINGCHANGE can be broadcast to each top-level window. Coalesce
+            // on the owning UI thread and repaint only if the effective theme changes.
+            systemAppearanceQueued = true;
+            BeginInvoke((Action)(() =>
+            {
+                systemAppearanceQueued = false;
+                if (!Disposing && !IsDisposed) VaporGridAppearance.SystemSettingsChanged();
+            }));
+        }
     }
     void ShowSystemMenu(Point screen)
     {
