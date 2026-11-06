@@ -11,6 +11,8 @@ public sealed class MainForm : DarkWindow
     readonly TabControl tabs = new DarkTabs() { Dock = DockStyle.Fill };
     readonly Panel commandHost = new() { Dock = DockStyle.Top, Height = 136 };
     readonly string? smoke;
+    Rectangle? firstRestoreBounds;
+    Rectangle? startupMaximizedBounds;
     public MainForm(string mode, string left, string right, string? smokePath)
     {
         smoke = smokePath; Text = "DiffBeacon — Compare With Clarity"; MinimumSize = new(900, 620); Font = new("Segoe UI", 10); StartPosition = FormStartPosition.Manual;
@@ -25,6 +27,7 @@ public sealed class MainForm : DarkWindow
         tabs.SelectedIndexChanged += (_, _) => HostCommands(); MainMenuStrip = menu;
         Add(mode, left, right); HostCommands();
         FormClosing += (_, e) => { if (IsSmoke) return; foreach (TabPage tab in tabs.TabPages) { if (!CanCloseTab(tab)) { e.Cancel = true; return; } } };
+        firstRestoreBounds = startupBounds;
         WindowState = FormWindowState.Maximized;
         Shown += async (_, _) =>
         {
@@ -42,6 +45,7 @@ public sealed class MainForm : DarkWindow
                 if (Screen.FromHandle(Handle).DeviceName != startupScreen.DeviceName || RestoreBounds.Size != startupBounds.Size)
                     throw new Exception($"Maximized startup changed the monitor or restore size: {RestoreBounds}, expected {startupBounds} on {startupScreen.DeviceName}.");
                 WindowState = FormWindowState.Normal;
+                await Task.Delay(60);
                 if (WindowState != FormWindowState.Normal || FormBorderStyle != FormBorderStyle.Sizable ||
                     Size != startupBounds.Size || Width < MinimumSize.Width || Height < MinimumSize.Height)
                     throw new Exception($"Maximized startup failed to restore the resizable window: {Bounds}, expected {startupBounds}, minimum {MinimumSize}.");
@@ -70,6 +74,28 @@ public sealed class MainForm : DarkWindow
         int height = Math.Clamp(850, minimum.Height, Math.Max(minimum.Height, workArea.Height));
         return new(workArea.Left + Math.Max(0, (workArea.Width - width) / 2),
             workArea.Top + Math.Max(0, (workArea.Height - height) / 2), width, height);
+    }
+    protected override void WndProc(ref Message message)
+    {
+        const int wmSize = 0x0005, sizeRestored = 0, sizeMaximized = 2;
+        base.WndProc(ref message);
+        if (message.Msg != wmSize || firstRestoreBounds is not { } restore) return;
+        if (message.WParam == sizeMaximized)
+        {
+            startupMaximizedBounds = Bounds;
+            return;
+        }
+        if (message.WParam != sizeRestored || startupMaximizedBounds is not { } maximized || WindowState != FormWindowState.Normal) return;
+        firstRestoreBounds = null;
+        var workArea = Screen.FromRectangle(maximized).WorkingArea;
+        if (!workArea.Contains(restore)) restore = StartupRestoreBounds(workArea, MinimumSize);
+        // A small monitor can leave the maximized frame rectangle in place during
+        // the first restore. Let native placement or caption drag finish first.
+        BeginInvoke(() =>
+        {
+            if (!IsDisposed && WindowState == FormWindowState.Normal && Bounds == maximized)
+                Bounds = restore;
+        });
     }
     void HostCommands()
     {
