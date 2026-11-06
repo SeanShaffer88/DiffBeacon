@@ -12,6 +12,9 @@ sealed class ThreeWayMergeView : UserControl
     readonly Label status = new() { Dock = DockStyle.Bottom, Height = 48, Padding = new(12, 8, 0, 0) };
     readonly Label outputFormat = new() { Dock = DockStyle.Top, Height = 30, Padding = new(8, 6, 0, 0), Text = "Merged Preview · Read-Only · Resolve Conflicts To Enable Save" };
     readonly Button compare = new() { Text = "Compare", AutoSize = true }, save = new() { Text = "Save Merged As…", AutoSize = true, Enabled = false }, undoButton = new() { Text = "Undo Choice", AutoSize = true, Enabled = false };
+    readonly Button cancel = new() { Text = "Cancel", AutoSize = true, Enabled = false };
+    readonly List<Button> commandButtons = new();
+    readonly List<Button> conflictNavigation = new(2);
     readonly Dictionary<string, MergeChoice> choices = new(StringComparer.Ordinal);
     readonly Stack<(string Id, MergeChoice? Previous)> undo = new();
     readonly List<Button> choiceButtons = new();
@@ -23,6 +26,9 @@ sealed class ThreeWayMergeView : UserControl
 
     static RichTextBox Editor() => new() { Dock = DockStyle.Fill, ReadOnly = true, WordWrap = false, DetectUrls = false, Font = new("Consolas", 10), BorderStyle = BorderStyle.None, BackColor = DarkTheme.AmberText, ForeColor = DarkTheme.Text, AccessibleDescription = "Read-only comparison content" };
     static void Style(Button button) => DarkTheme.Button(button);
+    internal IEnumerable<PaletteCommand> PaletteCommands() => commandButtons
+        .Where(button => button.Visible && (conflictSegments.Length > 0 && !pathsChanged || !conflictNavigation.Contains(button)))
+        .Select(button => PaletteCommand.ForButton(button));
     public ThreeWayMergeView()
     {
         Dock = DockStyle.Fill; BackColor = DarkTheme.Window; ForeColor = DarkTheme.Text;
@@ -38,17 +44,23 @@ sealed class ThreeWayMergeView : UserControl
             sources[i].AccessibleName = names[i] + " Source";
         }
         var toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, AutoScroll = false, Padding = new(10, 4, 0, 0) };
-        toolbar.Controls.Add(compare); Style(compare); compare.Click += async (_, _) => await CompareAsync(true);
-        var cancel = new Button { Text = "Cancel", AutoSize = true }; Style(cancel); toolbar.Controls.Add(cancel); cancel.Click += (_, _) => cancellation?.Cancel();
+        toolbar.Controls.Add(compare); DarkTheme.PrimaryButton(compare); compare.Click += async (_, _) => await CompareAsync(true);
+        Style(cancel); toolbar.Controls.Add(cancel); cancel.Click += (_, _) => cancellation?.Cancel();
         Style(save); toolbar.Controls.Add(save); save.Click += (_, _) => { using var d = new SaveFileDialog { Filter = "All Files|*.*", FileName = documents == null ? "Merged.txt" : Path.GetFileName(documents[1].Path), OverwritePrompt = true }; if (d.ShowDialog(this) == DialogResult.OK) TryAction(() => SaveTo(d.FileName, File.Exists(d.FileName))); };
         var sourceTable = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1 };
         for (int i = 0; i < 3; i++) { sourceTable.ColumnStyles.Add(new(SizeType.Percent, 100f / 3)); var panel = new Panel { Dock = DockStyle.Fill, Padding = new(4) }; panel.Controls.Add(sources[i]); panel.Controls.Add(new Label { Text = names[i] + " · Read-Only", Dock = DockStyle.Top, Height = 26, Padding = new(4, 4, 0, 0), BackColor = DarkTheme.Raised }); sourceTable.Controls.Add(panel, i, 0); }
         conflicts.BackColor = DarkTheme.Surface; conflicts.ForeColor = ForeColor; conflicts.SelectedIndexChanged += (_, _) => SelectConflict();
         var review = new SplitContainer { Size = new(1100, 350), Dock = DockStyle.Fill, SplitterWidth = 6, FixedPanel = FixedPanel.Panel1, SplitterDistance = 300, Panel1MinSize = 200, Panel2MinSize = 200 };
         var reviewTools = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Padding = new(4), AutoScroll = false };
-        void Button(string text, Action action, bool choice = false) { var b = new Button { Text = text, AutoSize = true }; Style(b); b.Click += (_, _) => TryAction(action); reviewTools.Controls.Add(b); if (choice) choiceButtons.Add(b); }
-        Button("Previous Conflict", () => MoveConflict(-1)); Button("Next Conflict", () => MoveConflict(1)); Button("Accept Local", () => Accept(MergeChoice.Local), true); Button("Accept Remote", () => Accept(MergeChoice.Remote), true); Button("Accept Both", () => Accept(MergeChoice.Both), true);
+        Button ReviewButton(string text, Action action, bool choice = false) { var b = new Button { Text = text, AutoSize = true }; Style(b); b.Click += (_, _) => TryAction(action); reviewTools.Controls.Add(b); if (choice) choiceButtons.Add(b); return b; }
+        conflictNavigation.Add(ReviewButton("Previous Conflict", () => MoveConflict(-1)));
+        conflictNavigation.Add(ReviewButton("Next Conflict", () => MoveConflict(1)));
+        ReviewButton("Accept Local", () => Accept(MergeChoice.Local), true);
+        ReviewButton("Accept Remote", () => Accept(MergeChoice.Remote), true);
+        ReviewButton("Accept Both", () => Accept(MergeChoice.Both), true);
         Style(undoButton); undoButton.Click += (_, _) => TryAction(UndoChoice); reviewTools.Controls.Add(undoButton);
+        commandButtons.AddRange(toolbar.Controls.OfType<Button>());
+        commandButtons.AddRange(reviewTools.Controls.OfType<Button>());
         review.Panel1.Controls.Add(conflicts); review.Panel1.Controls.Add(new Label { Text = "Conflicts · Explicit Choices Required", Dock = DockStyle.Top, Height = 29, Padding = new(6) });
         preview.AccessibleName = "Merged Preview"; review.Panel2.Controls.Add(preview); review.Panel2.Controls.Add(outputFormat);
         var content = new SplitContainer { Size = new(1100, 600), Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, FixedPanel = FixedPanel.Panel1, SplitterWidth = 6, SplitterDistance = 220 }; content.Panel1.Controls.Add(sourceTable); content.Panel2.Controls.Add(review); content.Panel2.Controls.Add(reviewTools);
@@ -98,7 +110,7 @@ sealed class ThreeWayMergeView : UserControl
     async Task CompareAsync(bool showErrors)
     {
         if (unsavedReview && showErrors && DarkPrompt.Show(this, "Discard The Current Unsaved Merge Review?", "Three-Way Merge", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-        InvalidatePlan(); var cts = new CancellationTokenSource(); cancellation = cts; var token = cts.Token; string[] filePaths = paths.Select(p => p.Text).ToArray(); compare.Enabled = false; status.Text = "Comparing Three Inputs…";
+        InvalidatePlan(); var cts = new CancellationTokenSource(); cancellation = cts; var token = cts.Token; string[] filePaths = paths.Select(p => p.Text).ToArray(); compare.Enabled = false; cancel.Enabled = true; status.Text = "Comparing Three Inputs…";
         try
         {
             var result = await Task.Run(() => { var loaded = new TextDocument[3]; for (int i = 0; i < 3; i++) { token.ThrowIfCancellationRequested(); loaded[i] = TextDocument.Load(filePaths[i]); } var created = ThreeWayMerge.Create(loaded[0].Text, loaded[1].Text, loaded[2].Text, token); foreach (var doc in loaded) { token.ThrowIfCancellationRequested(); if (!doc.Stamp.Matches(doc.Path)) throw new IOException("A source changed during comparison. Retry."); } return (Documents: loaded, Plan: created); }, token);
@@ -109,7 +121,7 @@ sealed class ThreeWayMergeView : UserControl
         }
         catch (OperationCanceledException) { if (!disposed && cts == cancellation) status.Text = "Cancelled · No Merge Plan Is Available"; }
         catch (Exception ex) { if (!disposed && cts == cancellation) { status.Text = "Error · " + ex.Message; if (showErrors) DarkPrompt.Show(this, ex.Message, "Three-Way Merge", MessageBoxButtons.OK, MessageBoxIcon.Warning); else throw; } }
-        finally { if (!disposed && cts == cancellation) { cancellation = null; compare.Enabled = true; } cts.Dispose(); }
+        finally { if (!disposed && cts == cancellation) { cancellation = null; compare.Enabled = true; cancel.Enabled = false; } cts.Dispose(); }
     }
     void RefreshReview()
     {

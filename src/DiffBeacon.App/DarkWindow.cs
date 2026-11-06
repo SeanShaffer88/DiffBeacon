@@ -5,7 +5,7 @@ namespace DiffBeacon.App;
 /// <summary>Custom caption over the documented sizable-window/system-command contract.</summary>
 public class DarkWindow : Form
 {
-    const int WmNcCalcSize = 0x83, WmNcHitTest = 0x84, WmGetMinMaxInfo = 0x24, WmNcLButtonDown = 0xa1, WmNcLButtonUp = 0xa2;
+    const int WmNcCalcSize = 0x83, WmNcHitTest = 0x84, WmGetMinMaxInfo = 0x24, WmWindowPosChanged = 0x47, WmNcLButtonDown = 0xa1, WmNcLButtonUp = 0xa2;
     const int HtClient = 1, HtCaption = 2, HtMaxButton = 9, HtLeft = 10, HtRight = 11, HtTop = 12, HtTopLeft = 13, HtTopRight = 14, HtBottom = 15, HtBottomLeft = 16, HtBottomRight = 17;
     readonly Panel captionBar = new() { Dock = DockStyle.Top, AccessibleName = "Window Title Bar", AccessibleRole = AccessibleRole.TitleBar };
     readonly Label captionText = new() { Dock = DockStyle.Fill, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleLeft };
@@ -14,6 +14,7 @@ public class DarkWindow : Form
     readonly Dictionary<Control, ChildHitRouter> hitRouters = new();
     bool maxPressed;
     bool captionPressed;
+    bool systemAppearanceQueued;
     Point captionPress;
     Rectangle pressedCaption;
     Size normalSize;
@@ -32,15 +33,33 @@ public class DarkWindow : Form
         captionIcon.DoubleClick += (_, _) => Close();
         ScaleCaption(); ApplyChrome(); WatchChildren(this);
     }
-    protected override void OnLoad(EventArgs e) { base.OnLoad(e); minimize.Visible = MinimizeBox; maximize.Visible = MaximizeBox; RefreshCaptionIcon(); ApplyChrome(); }
-    protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); int dark = DarkTheme.HighContrast ? 0 : 1; try { _ = DwmSetWindowAttribute(Handle, DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int)); } catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { /* App-drawn chrome remains available without DWM. */ } }
+    protected override void OnLoad(EventArgs e) { base.OnLoad(e); minimize.Visible = MinimizeBox; maximize.Visible = MaximizeBox; UpdateCaptionState(); RefreshCaptionIcon(); ApplyChrome(); }
+    protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); ApplyNativeChrome(); }
     protected override void OnDpiChanged(DpiChangedEventArgs e) { base.OnDpiChanged(e); ScaleCaption(); RefreshCaptionIcon(); }
-    protected override void OnResize(EventArgs e) { if (captionPressed && WindowState != FormWindowState.Maximized) CancelCaptionPress(); base.OnResize(e); if (maximize != null) { maximize.Text = WindowState == FormWindowState.Maximized ? "❐" : "□"; maximize.AccessibleName = WindowState == FormWindowState.Maximized ? "Restore" : "Maximize"; } }
-    protected override void OnSystemColorsChanged(EventArgs e) { base.OnSystemColorsChanged(e); if (captionBar != null) ApplyChrome(); }
+    protected override void OnSystemColorsChanged(EventArgs e)
+    {
+        base.OnSystemColorsChanged(e);
+        if (captionBar != null && !Disposing && !IsDisposed) ApplyChrome();
+    }
+
+    internal static void RefreshAppearance()
+    {
+        foreach (var window in Application.OpenForms.OfType<DarkWindow>().ToArray())
+            if (!window.Disposing && !window.IsDisposed) window.ApplyChrome();
+    }
+
+    void ApplyNativeChrome()
+    {
+        if (!IsHandleCreated) return;
+        int dark = DarkTheme.HighContrast || VaporGridAppearance.IsLight ? 0 : 1;
+        try { _ = DwmSetWindowAttribute(Handle, DwmWindowAttribute.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int)); }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { /* App-drawn chrome remains available without DWM. */ }
+    }
     void ScaleCaption() { int height = LogicalToDeviceUnits(46); captionBar.Height = height; captionIcon.Width = LogicalToDeviceUnits(42); foreach (var button in new[] { minimize, maximize, close }) { button.Width = LogicalToDeviceUnits(46); button.TabStop = true; button.Font = Font; } }
     void RefreshCaptionIcon() { iconBitmap?.Dispose(); iconBitmap = Icon?.ToBitmap(); captionIcon.Image = iconBitmap; }
     protected void ApplyChrome()
     {
+        ApplyNativeChrome();
         DarkTheme.Apply(this); captionBar.BackColor = captionText.BackColor = captionIcon.BackColor = DarkTheme.Caption;
         foreach (var button in new[] { minimize, maximize, close }) { DarkTheme.CaptionButton(button); button.BackColor = DarkTheme.Caption; button.FlatAppearance.BorderSize = 0; button.FlatAppearance.MouseOverBackColor = DarkTheme.ChromeSelection; }
         close.FlatAppearance.MouseOverBackColor = DarkTheme.AccentHover;
@@ -59,7 +78,22 @@ public class DarkWindow : Form
         }
         bitmap.Save(filename, System.Drawing.Imaging.ImageFormat.Png);
     }
-    void ToggleMaximize() { if (MaximizeBox) WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; }
+    void ToggleMaximize()
+    {
+        if (!MaximizeBox) return;
+        WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
+        UpdateCaptionState();
+    }
+    void UpdateCaptionState()
+    {
+        if (maximize == null || maximize.IsDisposed) return;
+        bool maximized = WindowState == FormWindowState.Maximized;
+        if (captionPressed && !maximized) CancelCaptionPress();
+        string name = maximized ? "Restore" : "Maximize";
+        if (maximize.AccessibleName == name) return;
+        maximize.Text = maximized ? "❐" : "□";
+        maximize.AccessibleName = name;
+    }
     internal void CheckMaximizedClientBounds()
     {
         var clientScreen = RectangleToScreen(ClientRectangle);
@@ -180,6 +214,21 @@ public class DarkWindow : Form
         if (m.Msg == 0xa3 && m.WParam == HtCaption) { CancelCaptionPress(); ToggleMaximize(); m.Result = 0; return; }
         if (m.Msg == 0xa5 && m.WParam == HtCaption) { ShowSystemMenu(DecodeScreenPoint(m.LParam)); m.Result = 0; return; }
         base.WndProc(ref m);
+        // Form updates WindowState here even if maximized and restored client
+        // dimensions match, in which case Control.OnResize need not run.
+        if (m.Msg == WmWindowPosChanged) UpdateCaptionState();
+        if (m.Msg == 0x001A && IsHandleCreated && !Disposing && !systemAppearanceQueued &&
+            VaporGridAppearance.Current.Theme == AppearanceTheme.System)
+        {
+            // WM_SETTINGCHANGE can be broadcast to each top-level window. Coalesce
+            // on the owning UI thread and repaint only if the effective theme changes.
+            systemAppearanceQueued = true;
+            BeginInvoke((Action)(() =>
+            {
+                systemAppearanceQueued = false;
+                if (!Disposing && !IsDisposed) VaporGridAppearance.SystemSettingsChanged();
+            }));
+        }
     }
     void ShowSystemMenu(Point screen)
     {
@@ -266,12 +315,33 @@ public class DarkWindow : Form
         if (WindowState != FormWindowState.Maximized || activations != 1) throw new Exception("Duplicate release activated maximize twice.");
         var maxTop = new Point(Left + 1, Top + 1);
         if (SendMessage(Handle, WmNcHitTest, 0, Pack(maxTop)) is >= HtLeft and <= HtBottomRight) throw new Exception("Maximized window retained resize edge.");
+        async Task WaitForCaptionState(FormWindowState expected, Rectangle? expectedBounds = null)
+        {
+            string name = expected == FormWindowState.Maximized ? "Restore" : "Maximize";
+            var timeout = System.Diagnostics.Stopwatch.StartNew();
+            await Task.Yield();
+            while (WindowState != expected || maximize.AccessibleName != name ||
+                (expectedBounds.HasValue && Bounds != expectedBounds.Value))
+            {
+                if (timeout.ElapsedMilliseconds >= 1000)
+                    throw new Exception($"Caption state failed: expected {expected}, '{name}', {expectedBounds}; actual {WindowState}, '{maximize.AccessibleName}', {Bounds}.");
+                await Task.Delay(15);
+            }
+        }
         maximize.PerformClick();
-        var original = Bounds; maximize.PerformClick(); await Task.Delay(60); if (WindowState != FormWindowState.Maximized || maximize.AccessibleName != "Restore") throw new Exception("Caption maximize failed.");
+        await WaitForCaptionState(FormWindowState.Normal);
+        var original = Bounds;
+        maximize.PerformClick();
+        await WaitForCaptionState(FormWindowState.Maximized);
         CheckMaximizedClientBounds();
         var captionBottom = captionText.PointToScreen(new(captionText.Width / 2, captionText.Height - 2));
         CheckHit(this, captionBottom, HtCaption); CheckHit(captionText, captionBottom, -1);
-        maximize.PerformClick(); await Task.Delay(60); if (WindowState != FormWindowState.Normal || Bounds != original) throw new Exception("Caption restore bounds failed.");
+        maximize.PerformClick();
+        await WaitForCaptionState(FormWindowState.Normal, original);
+        SendMessage(Handle, 0x112, 0xf030, 0); // SC_MAXIMIZE through the native system command path.
+        await WaitForCaptionState(FormWindowState.Maximized);
+        SendMessage(Handle, 0x112, 0xf120, 0); // SC_RESTORE
+        await WaitForCaptionState(FormWindowState.Normal, original);
         minimize.PerformClick(); if (WindowState != FormWindowState.Minimized) throw new Exception("Caption minimize failed."); WindowState = FormWindowState.Normal;
         int closing = 0; FormClosingEventHandler reject = (_, e) => { closing++; e.Cancel = true; }; FormClosing += reject; close.PerformClick(); FormClosing -= reject;
         if (closing != 1 || IsDisposed) throw new Exception("Caption close did not route through a single cancellable FormClosing.");
