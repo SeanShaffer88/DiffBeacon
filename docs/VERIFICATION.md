@@ -1,5 +1,15 @@
 # Local Verification
 
+## Maximized startup and large comparison scrolling — 2026-11-05
+
+The main window opens maximized, restores to a resizable window, and keeps a complete results row visible when space permits. Extracted Windows x64 package smoke checked the startup client against the monitor work area, restore, caption hit targets, and both editor orientations at 900, 1140, and 1260 px widths with a 620 px height. It checked native text fit for the pane header controls and the full displayed results row. Physical mixed-DPI and smaller work areas remain unverified.
+
+The historical all-changed fixture has 2,000 rows per pane and uses positional fallback with independent scrolling. A separate exact fixture has 2,000 result rows and a one-line insertion. On the exact fixture, packaged smoke verified immediate synchronized movement in both directions, native word highlighting of the changed tokens in both panes, the normal background on unchanged text, and skipping the superseded viewport. The old implementation failed the deterministic scroll assertion because it formatted text before returning from the input handler.
+
+The measured median time for the first native scroll handler on the released beta and on the candidate was 20.72 to 1.50 ms for the fallback fixture and 25.01 to 2.68 ms for the aligned fixture. Both ran at 1260×850. Immediate readback from both panes measured 20.86 to 21.07 ms and 25.14 to 26.92 ms respectively. The handler is shorter because decoration starts on a later UI dispatch. This test measures native message handling and readback on one machine. Physical frame presentation and mouse-wheel latency remain unverified. Each candidate fixture completed five runs. Each released-beta fixture completed four of five matched runs, with one setup timeout excluded per fixture.
+
+The package build passed 111 tests and five packed consumers. The extracted app passed full native smoke and the extracted package matched all 53 entries in the ZIP manifest. Windows CI runs the native smoke from the extracted portable artifact before uploading it.
+
 ## Overview spacing and native integration — 2026-11-05
 
 The latest native output was built in the separate `DiffBeacon-VaporGrid-Integration` worktree so the original open application could remain running. The overview remains visible for empty and populated comparisons. Its caption height is measured from the active font; track, marker, selection, focus and padding metrics scale with control DPI. Font/DPI changes recalculate height outside painting. The track retains a single quiet rail above the caption, with a gap below selection outlines and bottom text padding.

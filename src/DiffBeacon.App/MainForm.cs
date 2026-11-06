@@ -11,9 +11,14 @@ public sealed class MainForm : DarkWindow
     readonly TabControl tabs = new DarkTabs() { Dock = DockStyle.Fill };
     readonly Panel commandHost = new() { Dock = DockStyle.Top, Height = 136 };
     readonly string? smoke;
+    Rectangle? firstRestoreBounds;
+    Rectangle? startupMaximizedBounds;
     public MainForm(string mode, string left, string right, string? smokePath)
     {
-        smoke = smokePath; Text = "DiffBeacon — Compare With Clarity"; Width = 1260; Height = 850; MinimumSize = new(900, 620); Font = new("Segoe UI", 10); StartPosition = FormStartPosition.CenterScreen;
+        smoke = smokePath; Text = "DiffBeacon — Compare With Clarity"; MinimumSize = new(900, 620); Font = new("Segoe UI", 10); StartPosition = FormStartPosition.Manual;
+        var startupScreen = Screen.FromPoint(Cursor.Position);
+        var startupBounds = StartupRestoreBounds(startupScreen.WorkingArea, MinimumSize);
+        Bounds = startupBounds;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         var menu = new MenuStrip();
         var file = new ToolStripMenuItem("&File"); file.DropDownItems.Add("New Comparison", null, (_, _) => Add("Text", "", "")); file.DropDownItems.Add("New Three-Way Merge", null, (_, _) => AddThreeWay()); file.DropDownItems.Add("Open Session…", null, (_, _) => OpenSession()); file.DropDownItems.Add("Close Tab", null, (_, _) => CloseTab()); file.DropDownItems.Add("Exit", null, (_, _) => Close()); menu.Items.Add(file);
@@ -22,7 +27,75 @@ public sealed class MainForm : DarkWindow
         tabs.SelectedIndexChanged += (_, _) => HostCommands(); MainMenuStrip = menu;
         Add(mode, left, right); HostCommands();
         FormClosing += (_, e) => { if (IsSmoke) return; foreach (TabPage tab in tabs.TabPages) { if (!CanCloseTab(tab)) { e.Cancel = true; return; } } };
-        Shown += async (_, _) => { if (smoke != null) { try { CapturePreview(Path.ChangeExtension(smoke, ".startup.png")); ((CompareView)tabs.SelectedTab!.Controls[0]).CommandBar.CheckInitialLayout(); await SmokeChrome(); DarkPrompt.Smoke(this, Path.ChangeExtension(smoke, ".prompt.png")); SmokeSessionOwnership(); var view = (CompareView)tabs.SelectedTab!.Controls[0]; await view.RunSmoke(smoke); var threeWay = AddThreeWay(); await threeWay.RunSmoke(Path.ChangeExtension(smoke, ".three-way.png")); CloseTab(); } catch (Exception ex) { Console.Error.WriteLine(ex); SmokeFailed = true; } Close(); } };
+        firstRestoreBounds = startupBounds;
+        WindowState = FormWindowState.Maximized;
+        Shown += async (_, _) =>
+        {
+            if (smoke == null) return;
+            try
+            {
+                var smallWorkArea = new Rectangle(-1024, 40, 1024, 720);
+                if (StartupRestoreBounds(smallWorkArea, new(900, 620)) != smallWorkArea ||
+                    StartupRestoreBounds(new(0, 0, 1920, 1040), new(900, 620)) != new Rectangle(330, 95, 1260, 850))
+                    throw new Exception("Startup restore bounds did not fit the small or large work-area fixture.");
+                CheckMaximizedClientBounds();
+                var initialView = (CompareView)tabs.SelectedTab!.Controls[0];
+                initialView.CommandBar.CheckInitialLayout();
+                CapturePreview(Path.ChangeExtension(smoke, ".startup-maximized.png"));
+                if (Screen.FromHandle(Handle).DeviceName != startupScreen.DeviceName || RestoreBounds.Size != startupBounds.Size)
+                    throw new Exception($"Maximized startup changed the monitor or restore size: {RestoreBounds}, expected {startupBounds} on {startupScreen.DeviceName}.");
+                WindowState = FormWindowState.Normal;
+                await Task.Delay(60);
+                if (WindowState != FormWindowState.Normal || FormBorderStyle != FormBorderStyle.Sizable ||
+                    Size != startupBounds.Size || Width < MinimumSize.Width || Height < MinimumSize.Height)
+                    throw new Exception($"Maximized startup failed to restore the resizable window: {Bounds}, expected {startupBounds}, minimum {MinimumSize}.");
+                if (startupScreen.WorkingArea.Width >= MinimumSize.Width && startupScreen.WorkingArea.Height >= MinimumSize.Height &&
+                    (!startupScreen.WorkingArea.Contains(Bounds) || !startupScreen.WorkingArea.Contains(RectangleToScreen(ClientRectangle))))
+                    throw new Exception($"Restored window or client is clipped by the work area: {Bounds}, work area {startupScreen.WorkingArea}.");
+                Console.WriteLine($"Startup restore: {Bounds}, work area {startupScreen.WorkingArea}.");
+                CapturePreview(Path.ChangeExtension(smoke, ".startup.png"));
+                initialView.CommandBar.CheckInitialLayout();
+                await SmokeChrome();
+                DarkPrompt.Smoke(this, Path.ChangeExtension(smoke, ".prompt.png"));
+                SmokeSessionOwnership();
+                var view = (CompareView)tabs.SelectedTab!.Controls[0];
+                await view.RunSmoke(smoke);
+                var threeWay = AddThreeWay();
+                await threeWay.RunSmoke(Path.ChangeExtension(smoke, ".three-way.png"));
+                CloseTab();
+            }
+            catch (Exception ex) { FailSmoke(ex); }
+            Close();
+        };
+    }
+    static Rectangle StartupRestoreBounds(Rectangle workArea, Size minimum)
+    {
+        int width = Math.Clamp(1260, minimum.Width, Math.Max(minimum.Width, workArea.Width));
+        int height = Math.Clamp(850, minimum.Height, Math.Max(minimum.Height, workArea.Height));
+        return new(workArea.Left + Math.Max(0, (workArea.Width - width) / 2),
+            workArea.Top + Math.Max(0, (workArea.Height - height) / 2), width, height);
+    }
+    protected override void WndProc(ref Message message)
+    {
+        const int wmSize = 0x0005, sizeRestored = 0, sizeMaximized = 2;
+        base.WndProc(ref message);
+        if (message.Msg != wmSize || firstRestoreBounds is not { } restore) return;
+        if (message.WParam == sizeMaximized)
+        {
+            startupMaximizedBounds = Bounds;
+            return;
+        }
+        if (message.WParam != sizeRestored || startupMaximizedBounds is not { } maximized || WindowState != FormWindowState.Normal) return;
+        firstRestoreBounds = null;
+        var workArea = Screen.FromRectangle(maximized).WorkingArea;
+        if (!workArea.Contains(restore)) restore = StartupRestoreBounds(workArea, MinimumSize);
+        // A small monitor can leave the maximized frame rectangle in place during
+        // the first restore. Let native placement or caption drag finish first.
+        BeginInvoke(() =>
+        {
+            if (!IsDisposed && WindowState == FormWindowState.Normal && Bounds == maximized)
+                Bounds = restore;
+        });
     }
     void HostCommands()
     {
@@ -130,7 +203,7 @@ sealed class CompareView : UserControl
         leftPath.Text = left; rightPath.Text = right;
         Panel PathHeader(string label, TextBox path)
         {
-            var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 41, ColumnCount = 3, RowCount = 1, Padding = new(6, 4, 6, 4) };
+            var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 38, ColumnCount = 3, RowCount = 1, Padding = new(6, 4, 6, 4) };
             header.ColumnStyles.Add(new(SizeType.Absolute, 52));
             header.ColumnStyles.Add(new(SizeType.Percent, 100));
             header.ColumnStyles.Add(new(SizeType.Absolute, 90));
@@ -254,7 +327,8 @@ sealed class CompareView : UserControl
     {
         int paneHeight = leftHeader.Height + 2 * leftText.Font.Height;
         int editorHeight = editors.Orientation == Orientation.Horizontal ? paneHeight * 2 + editors.SplitterWidth : paneHeight;
-        SetSplit(workspace, resultProportion, editorHeight);
+        int resultsHeight = results.ColumnHeadersHeight + results.RowTemplate.Height + 2 * SystemInformation.BorderSize.Height;
+        SetSplit(workspace, resultProportion, editorHeight, resultsHeight);
         SetSplit(editors, editorProportion, editors.Orientation == Orientation.Horizontal ? paneHeight : 160, editors.Orientation == Orientation.Horizontal ? paneHeight : 160);
     }
     static void SetSplit(SplitContainer split, double proportion, int firstMinimum = 0, int secondMinimum = 0)
@@ -399,6 +473,8 @@ sealed class CompareView : UserControl
     }
     async Task PaintVisibleLoopAsync()
     {
+        // Return to the message pump before formatting a newly visible viewport.
+        await Task.Yield();
         while (visiblePaintPending && !disposed)
         {
             visiblePaintPending = false;
@@ -443,7 +519,11 @@ sealed class CompareView : UserControl
                 finally { suppress = previous; syncing = false; }
                 // A timer-backed break lets WinForms process input/paint, unlike
                 // an uninterrupted chain of posted Task.Yield continuations.
-                if (offset < candidates.Count) await Task.Delay(1);
+                if (offset < candidates.Count)
+                {
+                    await Task.Delay(1);
+                    if (visiblePaintPending) break;
+                }
             }
         }
     }
@@ -720,7 +800,17 @@ sealed class CompareView : UserControl
                 stacked.Checked = stack; await Task.Delay(20); CommandBar.VisitPages(CommandBar.CheckBounds);
                 foreach (var box in new[] { leftText, rightText }) if (box.Width < 100 || box.Height < box.Font.Height) { form.CapturePreview(Path.ChangeExtension(screenshot, ".layout-failure.png")); throw new Exception($"Layout leaves no usable editor viewport: width={width}, stacked={stack}, editor={box.Size}, deck={CommandBar.Height}, workspace={workspace.Size}, split={workspace.SplitterDistance}, proportions={editorProportion}/{resultProportion}."); }
                 foreach (var header in new[] { leftHeader, rightHeader }) foreach (Control child in header.Controls)
+                {
                     if (!header.ClientRectangle.Contains(child.Bounds)) throw new Exception("Pane path or Browse is clipped.");
+                    if (child is Label or Button)
+                    {
+                        var textSize = TextRenderer.MeasureText(child.Text, child.Font);
+                        if (textSize.Width > child.ClientSize.Width || textSize.Height > child.ClientSize.Height)
+                            throw new Exception($"Pane header text is clipped: {child.Text}, measured {textSize}, available {child.ClientSize}.");
+                    }
+                }
+                if (results.DisplayedRowCount(includePartialRow: false) == 0)
+                    throw new Exception($"Results shows no complete row: width={width}, stacked={stack}, grid height={results.Height}, workspace={workspace.Height}, split={workspace.SplitterDistance}/{workspace.SplitterWidth}, header={leftHeader.Height}, font={leftText.Font.Height}, results header/row={results.ColumnHeadersHeight}/{results.RowTemplate.Height}.");
                 if (width == 1260) form.CapturePreview(Path.ChangeExtension(screenshot, stack ? ".stacked.png" : ".side-by-side.png"));
             }
         }
@@ -882,13 +972,13 @@ sealed class CompareView : UserControl
         granularity.SelectedIndex = (int)HighlightGranularity.Word;
         SetTexts(left, right); await Compare();
         Color highlight = SystemInformation.HighContrast ? SystemColors.Highlight : DarkTheme.Amber;
-        void CheckColor(ComparisonEditor box, int line, Color expected, string reason)
+        void CheckColor(ComparisonEditor box, int line, Color expected, string reason, bool prefix = false)
         {
             int start = box.SelectionStart, length = box.SelectionLength;
             try
             {
                 int end = line + 1 < box.LogicalStarts.Length ? box.LogicalStarts[line + 1] - 1 : box.TextLength;
-                box.Select(end - 3, 3);
+                box.Select(prefix ? box.LogicalStarts[line] : end - 3, 3);
                 if (box.SelectionBackColor.ToArgb() != expected.ToArgb()) throw new Exception(reason);
             }
             finally { box.Select(start, length); }
@@ -931,6 +1021,29 @@ sealed class CompareView : UserControl
         var changingMode = ColorTextAsync(); mode.SelectedItem = "Tables"; await changingMode;
         if (detail != null || visiblePaintPlan.Length != 0 || completedResult) throw new Exception("Mode change retained lazy text detail.");
         mode.SelectedItem = "Text";
+
+        static IEnumerable<string> LargeRows(int count, string changed) =>
+            Enumerable.Range(0, count).Select(i => $"row {i:D4} {(i % 4 == 2 ? changed : "same")}");
+        var shifted = LargeRows(989, "new").ToList();
+        shifted.Insert(256, "right-only insertion");
+        SetTexts(string.Join('\n', LargeRows(1999, "old")), string.Join('\n', shifted));
+        await Compare();
+        if (textResult?.Rows.Count != 2000 || scrollMap == null) throw new Exception("Large scroll fixture did not produce 2,000 exactly aligned rows.");
+        int initiallyPainted = paintedDetail.Count(value => value);
+        leftText.ScrollDisplayTo(402);
+        if (leftText.FirstDisplayLine != 402 || rightText.FirstDisplayLine != 403) throw new Exception("Large forward scroll did not immediately map the shifted row.");
+        if (paintedDetail.Count(value => value) != initiallyPainted) throw new Exception("The large native scroll handler painted inline detail before returning.");
+        rightText.ScrollDisplayTo(607);
+        if (leftText.FirstDisplayLine != 606 || rightText.FirstDisplayLine != 607) throw new Exception("Large reverse scroll did not immediately map the newest row.");
+        if (visiblePaintTask is { } newestPaint) await newestPaint;
+        if (leftText.FirstDisplayLine != 606 || rightText.FirstDisplayLine != 607) throw new Exception("Deferred paint moved the newest viewport.");
+        CheckColor(leftText, 606, highlight, "Newest large scroll viewport lacked left word highlighting.");
+        CheckColor(rightText, 607, highlight, "Newest large scroll viewport lacked right word highlighting.");
+        CheckColor(leftText, 606, leftText.BackColor, "Newest left word highlighting colored unchanged text.", prefix: true);
+        CheckColor(rightText, 607, rightText.BackColor, "Newest right word highlighting colored unchanged text.", prefix: true);
+        CheckColor(leftText, 402, leftText.BackColor, "A superseded large scroll viewport was unnecessarily painted.");
+        CheckColor(rightText, 403, rightText.BackColor, "A superseded paired viewport was unnecessarily painted.");
+        Console.WriteLine("Large aligned scroll: both directions mapped immediately and deferred word detail followed the latest viewport.");
         Console.WriteLine("Lazy detail navigation, scrolling, wrap, selection and stale-generation checks: passed.");
     }
     async Task RunBlockMergeSmoke(string screenshot)
